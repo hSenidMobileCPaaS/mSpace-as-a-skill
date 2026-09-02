@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generate references/13-curl-reference.md from catalog/mspace-api.json.
+ * Generate references/14-curl-reference.md from catalog/mspace-api.json.
  *
  *   node scripts/build-curl-reference.mjs           write the document
  *   node scripts/build-curl-reference.mjs --check   fail if it is stale (used in CI)
@@ -19,7 +19,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { catalog, lookupStatusCode, repoRoot, urlFor } from "../tools/catalog.mjs";
 
-const OUT = join(repoRoot, "references", "13-curl-reference.md");
+const OUT = join(repoRoot, "references", "14-curl-reference.md");
 const check = process.argv.includes("--check");
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -100,7 +100,7 @@ const CLASS_LEGEND =
   "`client` fix the payload or the user's input · " +
   "`user-state` the subscriber is not eligible right now; tell them, do not loop · " +
   "`transient` retry with capped exponential backoff. " +
-  "Full table: [08-status-codes.md](08-status-codes.md).";
+  "Full table: [09-status-codes.md](09-status-codes.md).";
 
 const json = (value) => "```json\n" + JSON.stringify(value, null, 2) + "\n```";
 
@@ -282,7 +282,7 @@ function serviceSection(s) {
       parts.push(
         `The mSpace documentation publishes no further per-code table for this endpoint. Treat any\n` +
           `other code as a failure and decode it against the complete table in\n` +
-          `[08-status-codes.md](08-status-codes.md).\n`
+          `[09-status-codes.md](09-status-codes.md).\n`
       );
     }
     parts.push(CLASS_LEGEND + "\n");
@@ -361,7 +361,7 @@ which is visible in a shell command:
 | **Acknowledge-first callbacks** | The replay commands return instantly. A real handler must respond \`S1000\` and then work out of band — USSD sessions time out in seconds. |
 
 Those seven, plus a shared USSD session store, are the whole specification. They are written out
-language-neutrally in [11-any-stack.md](11-any-stack.md), with an acceptance checklist for a
+language-neutrally in [12-any-stack.md](12-any-stack.md), with an acceptance checklist for a
 port. [templates/](../templates/README.md) shows the same seven already built in TypeScript/Node,
 Python, Java, Go, PHP and C# — worked examples to read for shape, not output to paste.
 
@@ -375,7 +375,7 @@ Python, Java, Go, PHP and C# — worked examples to read for shape, not output t
 | Decode a status code you received | \`node tools/mspace.mjs code <statusCode>\` |
 | Smoke-test the outbound path | [\`scripts/smoke-test.sh\`](../scripts/smoke-test.sh) (or \`smoke-test.ps1\`) |
 | Test every callback handler | [\`scripts/test-callbacks.sh\`](../scripts/test-callbacks.sh) |
-| Every status code, classified | [08-status-codes.md](08-status-codes.md) |
+| Every status code, classified | [09-status-codes.md](09-status-codes.md) |
 `;
 
 const document = [
@@ -391,10 +391,10 @@ const document = [
 const current = existsSync(OUT) ? readFileSync(OUT, "utf8") : null;
 
 if (current === document) {
-  console.log("references/13-curl-reference.md is in sync with the catalog.");
+  console.log("references/14-curl-reference.md is in sync with the catalog.");
 } else if (check) {
   console.error(
-    "stale: references/13-curl-reference.md\n\n" +
+    "stale: references/14-curl-reference.md\n\n" +
       "The curl reference no longer matches catalog/mspace-api.json. Run\n" +
       "`node scripts/build-curl-reference.mjs` and commit the result."
   );
@@ -402,6 +402,6 @@ if (current === document) {
 } else {
   writeFileSync(OUT, document);
   console.log(
-    `wrote references/13-curl-reference.md — ${services.length} endpoints, ${callbacks.length} callbacks.`
+    `wrote references/14-curl-reference.md — ${services.length} endpoints, ${callbacks.length} callbacks.`
   );
 }

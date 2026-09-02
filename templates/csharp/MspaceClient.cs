@@ -70,7 +70,7 @@ public sealed class MspaceClient
     /// a callback that returns true unconditionally — that lets anyone on the path read the
     /// applicationId and password that can charge your subscribers. Supply the intermediate CA
     /// through a SocketsHttpHandler with a custom trust store instead. See
-    /// references/09-security-best-practices.md.
+    /// references/10-security-best-practices.md.
     /// </summary>
     public MspaceClient(HttpClient http, IOptions<MspaceOptions> options)
     {

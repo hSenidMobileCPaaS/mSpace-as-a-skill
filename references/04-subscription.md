@@ -17,8 +17,9 @@ Seven things live here:
 | **Subscriber List** | `POST /subscription/getSubscriberList` |
 | **Subscriber Notification** | `POST /subscription/notify` |
 
-Plus **OTP**, the registration flow for web and app users — documented at the end of this file —
-and the inbound **Subscription Notification URL**, in [07-callbacks.md](07-callbacks.md).
+Registering a subscriber who starts on a screen rather than on the network is the **OTP API**, a
+separate Inzpire service with its own page: [05-otp.md](05-otp.md). The inbound **Subscription
+Notification URL** is in [08-callbacks.md](08-callbacks.md).
 
 ---
 
@@ -376,128 +377,35 @@ This service sends subscription notifications to users.
 
 This is the same field vocabulary the **Subscription Notification URL** uses. That URL is
 configured separately, under Subscription configuration in provisioning, and is what tells you
-about subscription changes you did not initiate — see [07-callbacks.md](07-callbacks.md).
+about subscription changes you did not initiate — see [08-callbacks.md](08-callbacks.md).
 
 ---
 
-## OTP — registering users from web and mobile apps
+## OTP — registering subscribers from web and mobile apps
 
 When the subscriber starts on a screen rather than on the network (a website form, an app
-sign-up), you cannot get their MSISDN from the carrier. OTP solves that: the subscriber types
-their number, mSpace generates and sends an OTP to that MSISDN, and on successful verification
-the mSpace subscription process is activated and you receive the **masked `subscriberId`** to use
-with every other API.
+sign-up), you cannot get their MSISDN from the carrier. The **OTP API** solves that: the subscriber
+types their number, mSpace sends an OTP to it, and on successful verification the mSpace
+subscription process is activated and you receive the masked `subscriberId` to use with every other
+API.
 
-### Flow
-
-1. Collect the mobile number in your UI.
-2. `POST /otp/request` → mSpace sends the OTP to the subscriber.
-3. Store the returned `referenceNo` **server-side** against the user's session.
-4. Collect the OTP in your UI.
-5. `POST /otp/verify` with `referenceNo` + `otp`.
-6. Store the returned `subscriberId` — this is what you use for SMS, Subscription and Charging.
-
-**Always call these from a backend with a whitelisted IP**, never from the browser or the app.
-
-### OTP Request
+It is a separate Inzpire API with its own endpoints, its own status codes and its own rules:
+**[05-otp.md](05-otp.md)**.
 
 ```
-POST /otp/request
+POST /otp/request   → S1000 + referenceNo   (keep referenceNo server-side)
+POST /otp/verify    → S1000 + subscriptionStatus + masked subscriberId
 ```
 
-```json
-{
-  "applicationId": "APP_000375",
-  "password": "…",
-  "subscriberId": "tel:94716177301",
-  "applicationHash": "abcdefgh",
-  "applicationMetaData": {
-    "client": "MOBILEAPP",
-    "device": "Samsung S10",
-    "os": "android 8",
-    "appCode": "https://play.google.com/store/apps/details?id=lk"
-  }
-}
-```
+Two facts worth carrying back to this page: verifying an OTP **activates a subscription**, so it is
+a consent event and needs the same record as a Register call; and the `subscriberId` it returns is
+the masked identifier the application must use for every subsequent request.
 
-| Field | What to put in it |
-|---|---|
-| `subscriberId` | Mobile number of the end consumer |
-| `applicationHash` | Hash string to determine which verification messages to send to your app. Optional. |
-| `applicationMetaData.client` | Client type: a web browser or a mobile app |
-| `applicationMetaData.device` | Type or OS of device — iPhone 6, Galaxy S5, PC |
-| `applicationMetaData.os` | OS or device version — Android 6, iOS 5, Windows 10 |
-| `applicationMetaData.appCode` | Your app identifier in the store, or the web link if you use a browser |
-
-Success:
-
-```json
-{
-  "version": "1.0",
-  "statusCode": "S1000",
-  "referenceNo": "213561321321613",
-  "statusDetail": "Success"
-}
-```
-
-Documented codes: `S1000` (successfully sent the OTP challenge), `E1853` (maximum number of OTP
-requests reached), `E1856` (invalid request), `E1857` (internal server error), `E1301` (the
-application ID is not allowed within the system for the operator).
-
-### OTP Verify
-
-```
-POST /otp/verify
-```
-
-```json
-{
-  "applicationId": "APP_000375",
-  "password": "…",
-  "referenceNo": "213561321321613",
-  "otp": "123564"
-}
-```
-
-Success:
-
-```json
-{
-  "version": "1.0",
-  "statusCode": "S1000",
-  "subscriptionStatus": "REGISTERED",
-  "statusDetail": "Success",
-  "subscriberId": "tel:hu3b84346f63899a32ec742a666503a02a4dffe4f5"
-}
-```
-
-Documented codes: `S1000` (successfully validated), `E1850` (invalid OTP), `E1851` (the OTP
-request has expired), `E1852` (maximum number of OTP attempts reached), `E1854` (could not find
-OTP), `E1855` (invalid reference number), `E1857` (internal server error), `E1301`.
-
-### OTP rules
-
-- **`referenceNo` lives server-side, in the session.** Never send it to the client, never put it
-  in a URL, never let the client choose it — that would let an attacker verify against someone
-  else's OTP request.
-- **Rate-limit OTP requests yourself**, per number and per IP. Without that, your application is
-  an SMS-bombing tool aimed at arbitrary Sri Lankan phone numbers, at your expense. `E1853` tells
-  you when the platform's own limit is reached, but it is not your rate limiter.
-- **mSpace does not publish the OTP validity window or the attempt count.** `E1851` (expired) and
-  `E1852` (maximum attempts) are what you get when either is reached. Enforce your own limits as
-  well rather than assuming a number.
-- **The `subscriberId` you get back is the masked identifier.** The documentation is explicit:
-  the application has to use it for any subsequent request sent to the platform. Do not store the
-  raw MSISDN the user typed unless you genuinely need it, and if you do, protect it as personal
-  data.
-- **Never log the OTP or the `referenceNo`.**
-
-> The OTP API here activates a **subscription**. Charging has a separate OTP flow with its own
-> endpoints and its own reference value — see [05-caas.md](05-caas.md). They are not
-> interchangeable: a CaaS `requestCorrelator` is not an OTP `referenceNo`.
+Do not confuse it with the CaaS OTP, which authorises a charge rather than a subscription and
+carries a `requestCorrelator` instead of a `referenceNo` — see [06-caas.md](06-caas.md).
 
 ---
 
-Register, unregister, status, query base, charging info, subscriber list, notify, OTP request and
-OTP verify as runnable curls — every parameter, response and response field defined:
-[13-curl-reference.md](13-curl-reference.md).
+Register, unregister, status, query base, charging info, subscriber list and notify as runnable
+curls — every parameter, response and response field defined:
+[14-curl-reference.md](14-curl-reference.md). OTP request and verify are on the same page.

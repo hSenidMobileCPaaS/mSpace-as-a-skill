@@ -147,7 +147,7 @@ approval."*
 
 They are a symmetric shared secret with full authority over your application, including the
 ability to charge your subscribers real money. Handle them accordingly —
-[09-security-best-practices.md](09-security-best-practices.md) is not optional reading.
+[10-security-best-practices.md](10-security-best-practices.md) is not optional reading.
 
 ## Environments
 
@@ -234,7 +234,7 @@ curl -X POST 'https://api.mspace.lk/subscription/query-base' \
 
 More smoke tests: [scripts/smoke-test.sh](../scripts/smoke-test.sh). Every other endpoint in the
 same runnable form, with its parameters and response defined:
-[13-curl-reference.md](13-curl-reference.md) — start there whatever language you will build in,
+[14-curl-reference.md](14-curl-reference.md) — start there whatever language you will build in,
 because a call proven by hand is one you cannot get wrong in code.
 
 ## Where to go for help

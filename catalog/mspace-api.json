@@ -21,6 +21,45 @@
         "summary": "The no-code track. Contact, Vote, Alert and Scheduled Messages applications created and managed through the platform without writing code."
       }
     ],
+    "apis": [
+      {
+        "name": "SMS API",
+        "category": "sms",
+        "reference": "references/02-sms.md",
+        "summary": "SMS API allows your application to send messages to your subscriber base and receive messages from your subscribers. It also provides you an extra service of reporting delivery details of messages to track the status of the delivery."
+      },
+      {
+        "name": "USSD API",
+        "category": "ussd",
+        "reference": "references/03-ussd.md",
+        "summary": "USSD API allows your applications to initiate USSD sessions using a HTTP-based API. You can build USSD menu driven applications, monetize based on menu request, maintain an active session with customers."
+      },
+      {
+        "name": "Subscription API",
+        "category": "subscription",
+        "reference": "references/04-subscription.md",
+        "summary": "Subscription API allows a subscriber to register or unregister to or from an app, send subscription notification, query subscription status and query subscriber base size."
+      },
+      {
+        "name": "OTP API",
+        "category": "otp",
+        "reference": "references/05-otp.md",
+        "summary": "OTP API allows you to incorporate a One Time Password (OTP) verification process to enable subscription in the mobile application developed by you."
+      },
+      {
+        "name": "CaaS API",
+        "category": "caas",
+        "reference": "references/06-caas.md",
+        "summary": "CaaS API allows to monetize your app with micro-payments. You can retrieve the account balance and other related information of a given subscriber, charge specific amount from a subscriber's account.",
+        "note": "The Inzpire services page describes balance retrieval as part of CaaS, but the API documentation publishes no endpoint path for it — see references/06-caas.md."
+      },
+      {
+        "name": "LBS API",
+        "category": "lbs",
+        "reference": "references/07-lbs.md",
+        "summary": "LBS API allows the developer to request a location of a subscriber. Upon the request, mSpace will communicate the location of the subscriber if he/she has granted the permission."
+      }
+    ],
     "support": {
       "site": "https://mspace.lk",
       "operator": "https://www.mobitel.lk/mspace"
@@ -43,7 +82,10 @@
     "contentType": "application/json;charset=utf-8",
     "auth": {
       "type": "body-credentials",
-      "fields": ["applicationId", "password"],
+      "fields": [
+        "applicationId",
+        "password"
+      ],
       "note": "Every outbound request carries applicationId and password in the JSON body. There are no headers, tokens or signatures. For the CaaS services the password is the API key sent to the registered email address on application approval."
     },
     "addressing": {
@@ -55,8 +97,14 @@
       ]
     },
     "responseEnvelope": {
-      "always": ["statusCode", "statusDetail"],
-      "common": ["version", "requestId"],
+      "always": [
+        "statusCode",
+        "statusDetail"
+      ],
+      "common": [
+        "version",
+        "requestId"
+      ],
       "criticalNote": "mSpace returns HTTP 200 for application-level failures. Branch on statusCode, never on the HTTP status alone. S1000 is success — except on CaaS OTP generation, where the documented success code is P1003, and on Subscriber List, where S1001 means the request succeeded and matched nobody."
     },
     "callbackAck": {
@@ -69,7 +117,11 @@
       "id": "sms-send",
       "envVar": "MSPACE_SMS_SEND_URL",
       "name": "SMS Send",
-      "aliases": ["sms", "mt", "send sms"],
+      "aliases": [
+        "sms",
+        "mt",
+        "send sms"
+      ],
       "category": "sms",
       "direction": "outbound",
       "method": "POST",
@@ -117,14 +169,21 @@
           "name": "deliveryStatusRequest",
           "type": "enum",
           "required": false,
-          "enum": ["0", "1"],
+          "enum": [
+            "0",
+            "1"
+          ],
           "description": "Indicates the need of a Delivery Status Report for the message. 0 = not required, 1 = required."
         },
         {
           "name": "encoding",
           "type": "enum",
           "required": false,
-          "enum": ["0", "240", "245"],
+          "enum": [
+            "0",
+            "240",
+            "245"
+          ],
           "description": "Encoding scheme used in the message: 0 = Text, 240 = Flash SMS, 245 = Binary. If not specified it is taken as Text. With Binary the message content is represented hex encoded."
         },
         {
@@ -193,7 +252,9 @@
         "applicationId": "APP_999999",
         "password": "…",
         "message": "Hello",
-        "destinationAddresses": ["tel:94702725777"],
+        "destinationAddresses": [
+          "tel:94702725777"
+        ],
         "sourceAddress": "77000",
         "deliveryStatusRequest": "1",
         "encoding": "0"
@@ -214,9 +275,26 @@
         "statusDetail": "Success."
       },
       "statusCodes": [
-        "S1000", "E1303", "E1308", "E1309", "E1311", "E1312", "E1313", "E1315",
-        "E1317", "E1318", "E1319", "E1325", "E1331", "E1334", "E1335", "E1341",
-        "E1342", "E1343", "E1601", "E1603"
+        "S1000",
+        "E1303",
+        "E1308",
+        "E1309",
+        "E1311",
+        "E1312",
+        "E1313",
+        "E1315",
+        "E1317",
+        "E1318",
+        "E1319",
+        "E1325",
+        "E1331",
+        "E1334",
+        "E1335",
+        "E1341",
+        "E1342",
+        "E1343",
+        "E1601",
+        "E1603"
       ],
       "rules": [
         "destinationAddresses is always an array, even for a single recipient.",
@@ -230,7 +308,11 @@
       "id": "ussd-send",
       "envVar": "MSPACE_USSD_SEND_URL",
       "name": "USSD Send",
-      "aliases": ["ussd", "screen", "menu"],
+      "aliases": [
+        "ussd",
+        "screen",
+        "menu"
+      ],
       "category": "ussd",
       "direction": "outbound",
       "method": "POST",
@@ -272,7 +354,13 @@
           "name": "ussdOperation",
           "type": "enum",
           "required": true,
-          "enum": ["mo-init", "mo-cont", "mt-init", "mt-cont", "mt-fin"],
+          "enum": [
+            "mo-init",
+            "mo-cont",
+            "mt-init",
+            "mt-cont",
+            "mt-fin"
+          ],
           "description": "The USSD operation. An application assigns mt-init when it initiates a session, mt-cont for any message that comes after an init, and mt-fin when the session ends in a final message. mo-init and mo-cont are assigned by the platform for messages originated by the subscriber."
         },
         {
@@ -285,7 +373,9 @@
           "name": "encoding",
           "type": "enum",
           "required": false,
-          "enum": ["440"],
+          "enum": [
+            "440"
+          ],
           "description": "Encoding scheme used in the message. 440 = plain ASCII characters."
         }
       ],
@@ -334,8 +424,23 @@
         "statusDetail": "Success."
       },
       "statusCodes": [
-        "S1000", "E1303", "E1308", "E1309", "E1312", "E1313", "E1315", "E1317",
-        "E1318", "E1319", "E1325", "E1334", "E1341", "E1342", "E1343", "E1601", "E1603"
+        "S1000",
+        "E1303",
+        "E1308",
+        "E1309",
+        "E1312",
+        "E1313",
+        "E1315",
+        "E1317",
+        "E1318",
+        "E1319",
+        "E1325",
+        "E1334",
+        "E1341",
+        "E1342",
+        "E1343",
+        "E1601",
+        "E1603"
       ],
       "rules": [
         "Echo the sessionId the platform gave you. Never generate one for a session the platform started.",
@@ -348,7 +453,13 @@
       "id": "subscription-register",
       "envVar": "MSPACE_SUBSCRIPTION_SEND_URL",
       "name": "Subscription Register (opt-in)",
-      "aliases": ["register", "subscribe", "opt-in", "opt in", "sub"],
+      "aliases": [
+        "register",
+        "subscribe",
+        "opt-in",
+        "opt in",
+        "sub"
+      ],
       "category": "subscription",
       "direction": "outbound",
       "method": "POST",
@@ -378,7 +489,10 @@
           "name": "action",
           "type": "enum",
           "required": true,
-          "enum": ["1", "0"],
+          "enum": [
+            "1",
+            "0"
+          ],
           "description": "1 = user subscription, 0 = user unsubscription."
         }
       ],
@@ -416,7 +530,9 @@
         "statusDetail": "Request was successfully processed",
         "subscriptionStatus": "REGISTERED"
       },
-      "statusCodes": ["S1000"],
+      "statusCodes": [
+        "S1000"
+      ],
       "rules": [
         "Capture explicit consent before calling this, and record what the user agreed to, when, and through which channel.",
         "Disclose the charging amount and frequency before subscribing — both are set per application in provisioning.",
@@ -428,7 +544,14 @@
       "id": "subscription-unregister",
       "envVar": "MSPACE_SUBSCRIPTION_SEND_URL",
       "name": "Subscription Unregister (opt-out)",
-      "aliases": ["unregister", "unsubscribe", "unsub", "opt-out", "opt out", "stop"],
+      "aliases": [
+        "unregister",
+        "unsubscribe",
+        "unsub",
+        "opt-out",
+        "opt out",
+        "stop"
+      ],
       "category": "subscription",
       "direction": "outbound",
       "method": "POST",
@@ -458,7 +581,10 @@
           "name": "action",
           "type": "enum",
           "required": true,
-          "enum": ["1", "0"],
+          "enum": [
+            "1",
+            "0"
+          ],
           "description": "1 = user subscription, 0 = user unsubscription."
         }
       ],
@@ -496,7 +622,9 @@
         "statusDetail": "not registered",
         "subscriptionStatus": "UNREGISTERED"
       },
-      "statusCodes": ["S1000"],
+      "statusCodes": [
+        "S1000"
+      ],
       "rules": [
         "Unregister must be as easy to reach as register: an opt-out keyword over MO SMS, a USSD menu option, and an in-app control.",
         "Honour an opt-out immediately, including cancelling messages you have already queued for that subscriber.",
@@ -507,7 +635,11 @@
       "id": "subscription-status",
       "envVar": "MSPACE_SUBSCRIPTION_STATUS_URL",
       "name": "Subscriber Status",
-      "aliases": ["getstatus", "status", "subscriber status"],
+      "aliases": [
+        "getstatus",
+        "status",
+        "subscriber status"
+      ],
       "category": "subscription",
       "direction": "outbound",
       "method": "POST",
@@ -567,7 +699,9 @@
         "statusDetail": "Request was successfully processed",
         "subscriptionStatus": "REGISTERED"
       },
-      "statusCodes": ["S1000"],
+      "statusCodes": [
+        "S1000"
+      ],
       "rules": [
         "Use it for reconciliation — a nightly sweep, or when a subscriber disputes their state — not as a per-request gate.",
         "There are six documented statuses, not two. Handle INITIAL, REG_PENDING, TRIAL and TEMPORARY_BLOCKED explicitly."
@@ -577,7 +711,12 @@
       "id": "subscription-query-base",
       "envVar": "MSPACE_SUBSCRIPTION_QUERY_BASE_URL",
       "name": "Query Base (subscriber base size)",
-      "aliases": ["base size", "basesize", "query base", "query-base"],
+      "aliases": [
+        "base size",
+        "basesize",
+        "query base",
+        "query-base"
+      ],
       "category": "subscription",
       "direction": "outbound",
       "method": "POST",
@@ -630,7 +769,9 @@
         "statusCode": "S1000",
         "statusDetail": "Success."
       },
-      "statusCodes": ["S1000"],
+      "statusCodes": [
+        "S1000"
+      ],
       "rules": [
         "Needs no subscriber and charges nothing, which makes it the safest call for proving credentials, provisioning and the egress IP.",
         "baseSize is a string. Parse it before charting or comparing.",
@@ -641,7 +782,11 @@
       "id": "subscription-charging-info",
       "envVar": "MSPACE_SUBSCRIPTION_CHARGING_INFO_URL",
       "name": "Subscriber Charging Info",
-      "aliases": ["charging info", "getsubscribercharginginfo", "last charged"],
+      "aliases": [
+        "charging info",
+        "getsubscribercharginginfo",
+        "last charged"
+      ],
       "category": "subscription",
       "direction": "outbound",
       "method": "POST",
@@ -730,7 +875,11 @@
       "sampleRequest": {
         "applicationId": "APP_102672",
         "password": "…",
-        "subscriberIds": ["tel:94712342345", "tel:94712678845", "tel:9471982563"]
+        "subscriberIds": [
+          "tel:94712342345",
+          "tel:94712678845",
+          "tel:9471982563"
+        ]
       },
       "sampleResponse": {
         "version": "1.0",
@@ -748,7 +897,16 @@
         "statusCode": "S1000",
         "statusDetail": "Success."
       },
-      "statusCodes": ["S1000", "E1303", "E1312", "E1313", "E1317", "E1325", "E1601", "E1603"],
+      "statusCodes": [
+        "S1000",
+        "E1303",
+        "E1312",
+        "E1313",
+        "E1317",
+        "E1325",
+        "E1601",
+        "E1603"
+      ],
       "rules": [
         "Maximum 10 MSISDNs per request. Batch larger sets by looping with your own rate limiting.",
         "lastChargedDate and lastChargedAmount are absent for INITIAL, REG_PENDING and TRIAL subscribers — check before reading them.",
@@ -759,7 +917,11 @@
       "id": "subscription-list",
       "envVar": "MSPACE_SUBSCRIPTION_LIST_URL",
       "name": "Subscriber List",
-      "aliases": ["subscriber list", "getsubscriberlist", "list subscribers"],
+      "aliases": [
+        "subscriber list",
+        "getsubscriberlist",
+        "list subscribers"
+      ],
       "category": "subscription",
       "direction": "outbound",
       "method": "POST",
@@ -866,7 +1028,15 @@
         }
       },
       "statusCodes": [
-        "S1000", "S1001", "E1100", "E1102", "E1103", "E1104", "E1105", "E1106", "E1107"
+        "S1000",
+        "S1001",
+        "E1100",
+        "E1102",
+        "E1103",
+        "E1104",
+        "E1105",
+        "E1106",
+        "E1107"
       ],
       "rules": [
         "S1001 (No Subscribers Found) is not a failure. The request worked and matched nobody — treat it as success.",
@@ -879,7 +1049,10 @@
       "id": "subscription-notify",
       "envVar": "MSPACE_SUBSCRIPTION_NOTIFY_URL",
       "name": "Subscriber Notification",
-      "aliases": ["notify", "subscriber notification"],
+      "aliases": [
+        "notify",
+        "subscriber notification"
+      ],
       "category": "subscription",
       "direction": "outbound",
       "method": "POST",
@@ -921,7 +1094,12 @@
           "name": "frequency",
           "type": "enum",
           "required": true,
-          "enum": ["daily", "weekly", "monthly", "yearly"],
+          "enum": [
+            "daily",
+            "weekly",
+            "monthly",
+            "yearly"
+          ],
           "description": "Frequency of notifications being sent."
         },
         {
@@ -956,7 +1134,9 @@
         "statusCode": "S1000",
         "statusDetail": "Request was successfully processed"
       },
-      "statusCodes": ["S1000"],
+      "statusCodes": [
+        "S1000"
+      ],
       "rules": [
         "This is the same field vocabulary the Subscription Notification URL uses. Provisioning configures that URL separately, under Subscription configuration.",
         "Do not use it to reconstruct state you should be mirroring from the Subscription Notification URL."
@@ -966,13 +1146,17 @@
       "id": "otp-request",
       "envVar": "MSPACE_OTP_REQUEST_URL",
       "name": "OTP Request",
-      "aliases": ["otp", "request otp", "send otp"],
+      "aliases": [
+        "otp",
+        "request otp",
+        "send otp"
+      ],
       "category": "otp",
       "direction": "outbound",
       "method": "POST",
       "path": "/otp/request",
       "summary": "Request an OTP for a subscriber's MSISDN. mSpace generates and sends the OTP; the subscriber enters it in your application to activate a subscription.",
-      "reference": "references/04-subscription.md",
+      "reference": "references/05-otp.md",
       "parameters": [
         {
           "name": "applicationId",
@@ -1045,7 +1229,13 @@
         "referenceNo": "213561321321613",
         "statusDetail": "Success"
       },
-      "statusCodes": ["S1000", "E1301", "E1853", "E1856", "E1857"],
+      "statusCodes": [
+        "S1000",
+        "E1301",
+        "E1853",
+        "E1856",
+        "E1857"
+      ],
       "rules": [
         "Call it from a backend with a whitelisted IP, never from the browser or the mobile app.",
         "Keep referenceNo server-side, in the session. Never send it to the client and never put it in a URL.",
@@ -1057,13 +1247,16 @@
       "id": "otp-verify",
       "envVar": "MSPACE_OTP_VERIFY_URL",
       "name": "OTP Verify",
-      "aliases": ["verify otp", "otp verify"],
+      "aliases": [
+        "verify otp",
+        "otp verify"
+      ],
       "category": "otp",
       "direction": "outbound",
       "method": "POST",
       "path": "/otp/verify",
       "summary": "Verify the OTP a subscriber entered. On success the mSpace subscription process is activated and the masked subscriberId is returned.",
-      "reference": "references/04-subscription.md",
+      "reference": "references/05-otp.md",
       "parameters": [
         {
           "name": "applicationId",
@@ -1130,7 +1323,16 @@
         "statusDetail": "Success",
         "subscriberId": "tel:hu3b84346f63899a32ec742a666503a02a4dffe4f5"
       },
-      "statusCodes": ["S1000", "E1301", "E1850", "E1851", "E1852", "E1854", "E1855", "E1857"],
+      "statusCodes": [
+        "S1000",
+        "E1301",
+        "E1850",
+        "E1851",
+        "E1852",
+        "E1854",
+        "E1855",
+        "E1857"
+      ],
       "rules": [
         "The subscriberId returned here is the masked identifier. Store it as the subscriber's identity for every later mSpace call.",
         "E1851 (expired) and E1852 (maximum attempts reached) are the documented limits. mSpace does not publish the validity window or the attempt count, so enforce your own limits as well.",
@@ -1141,13 +1343,19 @@
       "id": "caas-otp-generation",
       "envVar": "MSPACE_CAAS_DEBIT_URL",
       "name": "CaaS OTP Generation (direct debit)",
-      "aliases": ["debit", "charge", "direct debit", "caas", "otp generation"],
+      "aliases": [
+        "debit",
+        "charge",
+        "direct debit",
+        "caas",
+        "otp generation"
+      ],
       "category": "caas",
       "direction": "outbound",
       "method": "POST",
       "path": "/caas/direct/debit",
       "summary": "Start a one-time charge on the subscriber's mobile account. mSpace generates and sends an OTP to the subscriber's MSISDN, which they must enter in your application to authorise the charge.",
-      "reference": "references/05-caas.md",
+      "reference": "references/06-caas.md",
       "movesMoney": true,
       "idempotencyKey": "externalTrxId",
       "parameters": [
@@ -1179,7 +1387,9 @@
           "name": "paymentInstrumentName",
           "type": "enum",
           "required": true,
-          "enum": ["Mobile Account"],
+          "enum": [
+            "Mobile Account"
+          ],
           "description": "The name of the payment instrument. Only a single value per request."
         },
         {
@@ -1251,9 +1461,28 @@
         "statusCode": "P1003"
       },
       "statusCodes": [
-        "P1003", "E1300", "E1301", "E1302", "E1303", "E1312", "E1313", "E1315",
-        "E1316", "E1325", "E1329", "E1330", "E1337", "E1342", "E1343", "E1371",
-        "E1601", "E1603", "E1604", "E1607", "E1608", "E1852"
+        "P1003",
+        "E1300",
+        "E1301",
+        "E1302",
+        "E1303",
+        "E1312",
+        "E1313",
+        "E1315",
+        "E1316",
+        "E1325",
+        "E1329",
+        "E1330",
+        "E1337",
+        "E1342",
+        "E1343",
+        "E1371",
+        "E1601",
+        "E1603",
+        "E1604",
+        "E1607",
+        "E1608",
+        "E1852"
       ],
       "rules": [
         "The success code is P1003, not S1000. Code that only accepts S1000 reports every successful charge request as a failure.",
@@ -1267,13 +1496,17 @@
       "id": "caas-otp-verify",
       "envVar": "MSPACE_CAAS_OTP_VERIFY_URL",
       "name": "CaaS OTP Verification",
-      "aliases": ["caas verify", "confirm charge", "otp charge"],
+      "aliases": [
+        "caas verify",
+        "confirm charge",
+        "otp charge"
+      ],
       "category": "caas",
       "direction": "outbound",
       "method": "POST",
       "path": "/caas/otp/verify",
       "summary": "Verify the OTP the subscriber entered. On successful verification the one-time charge is deducted from the subscriber's mobile account.",
-      "reference": "references/05-caas.md",
+      "reference": "references/06-caas.md",
       "movesMoney": true,
       "parameters": [
         {
@@ -1336,7 +1569,17 @@
         "statusDescription": "Request was Successfully processed.",
         "status": true
       },
-      "statusCodes": ["S1000", "E1312", "E1337", "E1850", "E1852", "E1854", "E1855", "E1856", "E9999"],
+      "statusCodes": [
+        "S1000",
+        "E1312",
+        "E1337",
+        "E1850",
+        "E1852",
+        "E1854",
+        "E1855",
+        "E1856",
+        "E9999"
+      ],
       "rules": [
         "referenceNo is the requestCorrelator from the OTP generation response, not your externalTrxId.",
         "The description field is statusDescription on this endpoint, not statusDetail. A shared response parser that only reads statusDetail loses the message.",
@@ -1349,13 +1592,17 @@
       "id": "lbs-request",
       "envVar": "MSPACE_LBS_REQUEST_URL",
       "name": "LBS Request Location",
-      "aliases": ["lbs", "locate", "location"],
+      "aliases": [
+        "lbs",
+        "locate",
+        "location"
+      ],
       "category": "lbs",
       "direction": "outbound",
       "method": "POST",
       "path": "/lbs/request",
       "summary": "Request the location of a subscriber. mSpace returns the location if the subscriber has granted permission.",
-      "reference": "references/06-lbs.md",
+      "reference": "references/07-lbs.md",
       "parameters": [
         {
           "name": "applicationId",
@@ -1391,7 +1638,9 @@
           "name": "serviceType",
           "type": "enum",
           "required": false,
-          "enum": ["IMMEDIATE"],
+          "enum": [
+            "IMMEDIATE"
+          ],
           "description": "Required MLP service type. Currently supports IMMEDIATE."
         }
       ],
@@ -1455,7 +1704,10 @@
         "statusCode": "S1000",
         "statusDetail": "Success"
       },
-      "statusCodes": ["S1000", "E1303"],
+      "statusCodes": [
+        "S1000",
+        "E1303"
+      ],
       "rules": [
         "requesterId is mandatory and separate from subscriberId — the requester and the located subscriber are two different fields.",
         "latitude and longitude are strings, and absent on failure. Check they exist before reading them.",
@@ -1468,7 +1720,12 @@
     {
       "id": "sms-mo",
       "name": "SMS Receive (MO)",
-      "aliases": ["mo", "mo sms", "sms receive", "message receiving url"],
+      "aliases": [
+        "mo",
+        "mo sms",
+        "sms receive",
+        "message receiving url"
+      ],
       "category": "sms",
       "direction": "inbound",
       "suggestedPath": "/api/mspace/sms/receive",
@@ -1511,7 +1768,11 @@
           "name": "encoding",
           "type": "enum",
           "required": true,
-          "enum": ["0", "240", "245"],
+          "enum": [
+            "0",
+            "240",
+            "245"
+          ],
           "description": "Encoding scheme used in the message: 0 = Text, 240 = Flash SMS, 245 = Binary. With Binary the message content is hex encoded."
         }
       ],
@@ -1524,9 +1785,26 @@
         "encoding": "0"
       },
       "statusCodes": [
-        "S1000", "E1303", "E1308", "E1309", "E1311", "E1312", "E1313", "E1315",
-        "E1317", "E1318", "E1319", "E1325", "E1331", "E1334", "E1335", "E1341",
-        "E1342", "E1343", "E1601", "E1603"
+        "S1000",
+        "E1303",
+        "E1308",
+        "E1309",
+        "E1311",
+        "E1312",
+        "E1313",
+        "E1315",
+        "E1317",
+        "E1318",
+        "E1319",
+        "E1325",
+        "E1331",
+        "E1334",
+        "E1335",
+        "E1341",
+        "E1342",
+        "E1343",
+        "E1601",
+        "E1603"
       ],
       "rules": [
         "Recognise opt-out keywords such as STOP, UNSUB and OFF, and honour them by calling Subscription Unregister.",
@@ -1536,7 +1814,11 @@
     {
       "id": "sms-dlr",
       "name": "SMS Delivery Report",
-      "aliases": ["dlr", "delivery report", "delivery status"],
+      "aliases": [
+        "dlr",
+        "delivery report",
+        "delivery status"
+      ],
       "category": "sms",
       "direction": "inbound",
       "suggestedPath": "/api/mspace/sms/report",
@@ -1567,7 +1849,15 @@
           "name": "deliveryStatus",
           "type": "enum",
           "required": true,
-          "enum": ["DELIVERED", "EXPIRED", "DELETED", "UNDELIVERABLE", "ACCEPTED", "UNKNOWN", "REJECTED"],
+          "enum": [
+            "DELIVERED",
+            "EXPIRED",
+            "DELETED",
+            "UNDELIVERABLE",
+            "ACCEPTED",
+            "UNKNOWN",
+            "REJECTED"
+          ],
           "description": "The delivery outcome the platform reports to the application."
         }
       ],
@@ -1578,9 +1868,26 @@
         "deliveryStatus": "DELIVERED"
       },
       "statusCodes": [
-        "S1000", "E1303", "E1308", "E1309", "E1311", "E1312", "E1313", "E1315",
-        "E1317", "E1318", "E1319", "E1325", "E1331", "E1334", "E1335", "E1341",
-        "E1342", "E1343", "E1601", "E1603"
+        "S1000",
+        "E1303",
+        "E1308",
+        "E1309",
+        "E1311",
+        "E1312",
+        "E1313",
+        "E1315",
+        "E1317",
+        "E1318",
+        "E1319",
+        "E1325",
+        "E1331",
+        "E1334",
+        "E1335",
+        "E1341",
+        "E1342",
+        "E1343",
+        "E1601",
+        "E1603"
       ],
       "rules": [
         "ACCEPTED is not DELIVERED — it means the network took the message, nothing more.",
@@ -1590,7 +1897,11 @@
     {
       "id": "ussd-receive",
       "name": "USSD Receive",
-      "aliases": ["ussd receive", "connection url", "keypress"],
+      "aliases": [
+        "ussd receive",
+        "connection url",
+        "keypress"
+      ],
       "category": "ussd",
       "direction": "inbound",
       "suggestedPath": "/api/mspace/ussd/receive",
@@ -1633,7 +1944,13 @@
           "name": "ussdOperation",
           "type": "enum",
           "required": true,
-          "enum": ["mo-init", "mo-cont", "mt-init", "mt-cont", "mt-fin"],
+          "enum": [
+            "mo-init",
+            "mo-cont",
+            "mt-init",
+            "mt-cont",
+            "mt-fin"
+          ],
           "description": "The USSD operation. Inbound it is mo-init when the subscriber starts a session, or mo-cont for a message that comes after an init."
         },
         {
@@ -1652,7 +1969,9 @@
           "name": "encoding",
           "type": "enum",
           "required": true,
-          "enum": ["440"],
+          "enum": [
+            "440"
+          ],
           "description": "Encoding scheme used in the message. 440 = plain ASCII characters."
         }
       ],
@@ -1668,8 +1987,23 @@
         "encoding": "440"
       },
       "statusCodes": [
-        "S1000", "E1303", "E1308", "E1309", "E1312", "E1313", "E1315", "E1317",
-        "E1318", "E1319", "E1325", "E1334", "E1341", "E1342", "E1343", "E1601", "E1603"
+        "S1000",
+        "E1303",
+        "E1308",
+        "E1309",
+        "E1312",
+        "E1313",
+        "E1315",
+        "E1317",
+        "E1318",
+        "E1319",
+        "E1325",
+        "E1334",
+        "E1341",
+        "E1342",
+        "E1343",
+        "E1601",
+        "E1603"
       ],
       "rules": [
         "The response body is only an acknowledgement. The screen the subscriber sees comes from a separate POST /ussd/send.",
@@ -1679,13 +2013,17 @@
     {
       "id": "charging-notification",
       "name": "Charging Notification",
-      "aliases": ["charging notification", "charger notification", "caas callback"],
+      "aliases": [
+        "charging notification",
+        "charger notification",
+        "caas callback"
+      ],
       "category": "caas",
       "direction": "inbound",
       "suggestedPath": "/api/mspace/charging/notification",
       "configuredIn": "CaaS configuration — Charging Notification URL",
       "summary": "Returned to your application upon a charging attempt, saying whether the charging succeeded. There is nothing to trigger: it arrives automatically once the transaction completes within the system.",
-      "reference": "references/05-caas.md",
+      "reference": "references/06-caas.md",
       "dedupeKey": "externalTrxId + statusCode",
       "fields": [
         {
@@ -1768,7 +2106,16 @@
         "statusCode": "S1000",
         "statusDetail": "Request was Successfully processed, Due amount fully paid."
       },
-      "statusCodes": ["S1000", "E1404", "E1405", "E1852", "E1854", "E1855", "E1856", "E1857"],
+      "statusCodes": [
+        "S1000",
+        "E1404",
+        "E1405",
+        "E1852",
+        "E1854",
+        "E1855",
+        "E1856",
+        "E1857"
+      ],
       "rules": [
         "This is your reconciliation channel. Every charge your code left in an unknown state after a timeout gets settled here.",
         "Match on externalTrxId — the key you generated and persisted before the OTP generation call.",
@@ -1812,13 +2159,17 @@
       "class": "success",
       "description": "No Subscribers Found.",
       "fix": "The request succeeded and matched nobody. Treat it as success and stop paging.",
-      "benignFor": ["subscription-list"]
+      "benignFor": [
+        "subscription-list"
+      ]
     },
     "P1003": {
       "class": "pending",
       "description": "Successfully sent OTP to user.",
       "fix": "This is the success code for CaaS OTP generation — nothing has been charged yet. Store requestCorrelator, collect the OTP from the subscriber, and call CaaS OTP Verification.",
-      "benignFor": ["caas-otp-generation"]
+      "benignFor": [
+        "caas-otp-generation"
+      ]
     },
     "E1100": {
       "class": "transient",
@@ -2047,42 +2398,42 @@
       "severity": "critical",
       "title": "Never hardcode applicationId or password",
       "detail": "Environment variables only, through one config module, validated at startup. Not in source, not in a client bundle, not in a committed file, not in a log, not in git history. Never prefixed NEXT_PUBLIC_ / VITE_ / REACT_APP_.",
-      "reference": "references/09-security-best-practices.md"
+      "reference": "references/10-security-best-practices.md"
     },
     {
       "id": "backend-only",
       "severity": "critical",
       "title": "Never call mSpace from client-side code",
       "detail": "Clients call your backend; your backend calls mSpace. The credentials are a shared secret and the platform enforces the Allowed Host Address list, which a mobile client cannot satisfy.",
-      "reference": "references/09-security-best-practices.md"
+      "reference": "references/10-security-best-practices.md"
     },
     {
       "id": "consent-before-charging",
       "severity": "critical",
       "title": "Never subscribe or charge without recorded consent",
       "detail": "Capture explicit consent with a timestamp and the channel before Subscription Register or any CaaS charge, and disclose the amount and frequency first. Both are configured per application in provisioning.",
-      "reference": "references/09-security-best-practices.md"
+      "reference": "references/10-security-best-practices.md"
     },
     {
       "id": "idempotent-charging",
       "severity": "critical",
       "title": "Charging is idempotent on externalTrxId",
       "detail": "Generate externalTrxId once per logical charge, persist it BEFORE the call, and reuse it unchanged on any resolution attempt. A retry with a fresh id can charge a real person twice.",
-      "reference": "references/05-caas.md"
+      "reference": "references/06-caas.md"
     },
     {
       "id": "branch-on-status-code",
       "severity": "critical",
       "title": "HTTP 200 does not mean success",
       "detail": "mSpace returns HTTP 200 for application-level failures. Branch on statusCode. S1000 is success everywhere except CaaS OTP generation, where the documented success code is P1003, and Subscriber List, where S1001 means success with no matches.",
-      "reference": "references/08-status-codes.md"
+      "reference": "references/09-status-codes.md"
     },
     {
       "id": "opaque-subscriber-id",
       "severity": "high",
       "title": "Treat subscriberId as opaque",
       "detail": "With Mobile Number Masking enabled the platform sends a masked number rather than an MSISDN. Do not parse it, do not strip tel:, do not assume a length. Store it as given and send back exactly what you received.",
-      "reference": "references/09-security-best-practices.md"
+      "reference": "references/10-security-best-practices.md"
     },
     {
       "id": "guard-broadcast",
@@ -2096,21 +2447,21 @@
       "severity": "high",
       "title": "Acknowledge callbacks before doing work",
       "detail": "Respond HTTP 200 with {\"statusCode\":\"S1000\",\"statusDetail\":\"Success\"} immediately, then process out of band through the stack's real background mechanism. USSD sessions time out in seconds.",
-      "reference": "references/07-callbacks.md"
+      "reference": "references/08-callbacks.md"
     },
     {
       "id": "idempotent-callbacks",
       "severity": "high",
       "title": "Deduplicate every callback",
       "detail": "Every callback can arrive more than once. Deduplicate on the documented key, and make a duplicate charging notification incapable of double-counting revenue.",
-      "reference": "references/07-callbacks.md"
+      "reference": "references/08-callbacks.md"
     },
     {
       "id": "tls-verification-on",
       "severity": "high",
       "title": "Never disable TLS verification",
       "detail": "Disabling certificate validation exposes the applicationId and password that can charge your subscribers. If a chain is incomplete, supply the intermediate CA explicitly instead.",
-      "reference": "references/09-security-best-practices.md"
+      "reference": "references/10-security-best-practices.md"
     },
     {
       "id": "echo-session-id",
@@ -2131,21 +2482,21 @@
       "severity": "medium",
       "title": "Money is a decimal type",
       "detail": "amount crosses the wire as a string. Hold it as BigDecimal, decimal.Decimal, decimal, bcmath or integer minor units in your own code — never a binary float.",
-      "reference": "references/05-caas.md"
+      "reference": "references/06-caas.md"
     },
     {
       "id": "explicit-timeouts",
       "severity": "medium",
       "title": "Set an explicit timeout on every call",
       "detail": "No default-infinite requests. A timeout is a property of the protocol, so it belongs in the client as a constant rather than in configuration.",
-      "reference": "references/09-security-best-practices.md"
+      "reference": "references/10-security-best-practices.md"
     },
     {
       "id": "log-identifiers-not-content",
       "severity": "medium",
       "title": "Log identifiers, mask subscribers, never log secrets",
       "detail": "Log requestId, sessionId, externalTrxId, internalTrxId and statusCode. Mask subscriberId. Never log the password, the OTP, referenceNo or requestCorrelator.",
-      "reference": "references/09-security-best-practices.md"
+      "reference": "references/10-security-best-practices.md"
     },
     {
       "id": "mirror-subscription-state",

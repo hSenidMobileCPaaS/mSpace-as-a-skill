@@ -41,16 +41,24 @@ command for machine-readable output.
 | `mspace-debug` | A failing call or callback |
 | `mspace-golive` | The pre-production checklist |
 
-## Services covered
+## The six Inzpire APIs
 
-**SMS** — send (MT), send to the subscribed base, receive (MO), delivery reports
-**USSD** — send screens, receive input, session handling
-**Subscription** — register, unregister, status, query base size, subscriber charging info,
-subscriber list, subscriber notifications
-**OTP** — request, verify (subscription activation)
-**CaaS** — OTP generation, OTP verification, charging notifications
-**LBS** — request a subscriber's location
-**Not published** — voice/IVR and balance query. Do not invent endpoints for either.
+Every API mSpace publishes on its Inzpire services page, with one reference document each:
+
+| API | Covered here |
+|---|---|
+| **SMS API** | send (MT), send to the subscribed base, receive (MO), delivery reports |
+| **USSD API** | send screens, receive input, the session state machine |
+| **Subscription API** | register, unregister, status, query base size, subscriber charging info, subscriber list, subscriber notifications |
+| **OTP API** | request, verify — activating a subscription from a web or app sign-up |
+| **CaaS API** | OTP generation, OTP verification, charging notifications |
+| **LBS API** | request a subscriber's location |
+
+`node tools/mspace.mjs platform` lists them; `node tools/mspace.mjs list <category>` — `sms`,
+`ussd`, `subscription`, `otp`, `caas`, `lbs` — drills into one.
+
+**Not published** — voice/IVR, and the balance retrieval the CaaS blurb mentions (a `queryBalance`
+schema exists with no endpoint path). Do not invent endpoints for either.
 
 **Two tracks:** **Inzpire** is the API track this skill covers. **Xpand** is the no-code track —
 Contact, Vote, Alert and Scheduled Messages applications. If a requirement is fully covered by an
@@ -58,13 +66,17 @@ Xpand template, an application there beats an integration.
 
 ## References
 
-`01-getting-started` · `02-sms` · `03-ussd` · `04-subscription` · `05-caas` · `06-lbs` ·
-`07-callbacks` · `08-status-codes` · `09-security-best-practices` · `10-production-checklist` ·
-`11-any-stack` · `12-implementation-playbook` · `13-curl-reference`
+`01-getting-started` · `02-sms` · `03-ussd` · `04-subscription` · `05-otp` · `06-caas` ·
+`07-lbs` · `08-callbacks` · `09-status-codes` · `10-security-best-practices` ·
+`11-production-checklist` · `12-any-stack` · `13-implementation-playbook` ·
+`14-curl-reference`
+
+The first six after getting-started are the six APIs mSpace publishes on its Inzpire services
+page: SMS, USSD, Subscription, OTP, CaaS and LBS — one document each.
 
 ## Writing the call
 
-**`references/13-curl-reference.md`** is where every call comes from: each endpoint at the wire — a
+**`references/14-curl-reference.md`** is where every call comes from: each endpoint at the wire — a
 runnable curl, every parameter defined, the response, every response field explained, that
 endpoint's status codes — plus every callback with a replay command. Translate the request into the
 project's own HTTP client; that is the integration.
@@ -73,7 +85,7 @@ project's own HTTP client; that is the integration.
 node tools/mspace.mjs curl subscription-query-base              # the cheapest call to prove setup
 node tools/mspace.mjs curl sms-send message="Hi" \
   destinationAddresses='["tel:94702725777"]'                    # filled in and validated
-node tools/mspace.mjs reference 13-curl-reference               # the whole page
+node tools/mspace.mjs reference 14-curl-reference               # the whole page
 ```
 
 There is no code generator: an emitter would cover a few languages and age with their idioms, where
@@ -84,7 +96,7 @@ a curl is the same call in all of them and stays true.
 The integration can be written in **any** language — mSpace is JSON over HTTPS. The curl reference
 covers every endpoint with no tooling at all; worked implementations ship for TypeScript/Node,
 Python, Java, Go, PHP and C# (`templates/README.md`) to read for shape; and
-`references/11-any-stack.md` specifies the same seven components language-neutrally for anything
+`references/12-any-stack.md` specifies the same seven components language-neutrally for anything
 else. The CLI above needs Node, but it is only a documentation reader.
 
 ## The things to remember

@@ -9,7 +9,7 @@ the host project already uses. The files in [templates/](../templates/) are the 
 components written out in several languages — read the one closest to your stack, but treat *this*
 page as the contract.
 
-**The calls themselves are in [13-curl-reference.md](13-curl-reference.md)** — every endpoint as a
+**The calls themselves are in [14-curl-reference.md](14-curl-reference.md)** — every endpoint as a
 runnable curl, with every parameter defined, the response, and every response field explained,
 plus all the callbacks. That page and this one are together a complete integration in a language
 nobody here has written a template for: it gives you the wire, this gives you what surrounds it.
@@ -114,7 +114,7 @@ Four things this pseudocode says that are easy to get wrong in a port:
 
 ## 4. Status-code classification
 
-The six classes and their members are in [08-status-codes.md](08-status-codes.md) and, as
+The six classes and their members are in [09-status-codes.md](09-status-codes.md) and, as
 machine-readable data, in [`catalog/mspace-api.json`](../catalog/mspace-api.json) under
 `statusCodes` — generate the sets from the catalog rather than retyping them.
 
@@ -143,13 +143,13 @@ language:
 
 The charging flow deserves its own note: it is three exchanges, not one — generation, verification
 and the notification. Model it as a small state machine over a persisted ledger row, not as one
-function call. See [05-caas.md](05-caas.md).
+function call. See [06-caas.md](06-caas.md).
 
 ## 6. Callback endpoints
 
 Five routes, one contract: respond HTTP 200 with
 `{"statusCode":"S1000","statusDetail":"Success"}`, immediately, before doing any work. Full rules
-in [07-callbacks.md](07-callbacks.md).
+in [08-callbacks.md](08-callbacks.md).
 
 "Process out of band" means different things per stack, and picking the wrong one is the most
 common porting mistake:
@@ -270,7 +270,7 @@ simulator from the mSpace developer bundle.
 | [templates/csharp/](../templates/csharp/) | options, typed client, ASP.NET Core callback endpoints | `IHttpClientFactory`, `System.Text.Json` |
 
 No template for your stack — Ruby, Rust, Kotlin, Elixir, Scala, Dart on a server? Take the calls
-from [13-curl-reference.md](13-curl-reference.md), implement the seven components above around
+from [14-curl-reference.md](14-curl-reference.md), implement the seven components above around
 them, use the closest template for the shape, and run the acceptance checklist. The contract also
 ships as [`catalog/mspace-api.json`](../catalog/mspace-api.json), plain JSON that every language
 can read directly.
@@ -281,7 +281,7 @@ can read directly.
 
 `tools/mspace.mjs` runs on Node. That is a property of the *documentation tool*, not of your
 integration — it makes no network calls and never sees a credential. If Node is not available on
-your machine, nothing is lost: [13-curl-reference.md](13-curl-reference.md) is the same contract
+your machine, nothing is lost: [14-curl-reference.md](14-curl-reference.md) is the same contract
 as prose, and the underlying data is in
 [`catalog/mspace-api.json`](../catalog/mspace-api.json):
 

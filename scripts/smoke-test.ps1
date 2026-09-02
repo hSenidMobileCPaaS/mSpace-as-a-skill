@@ -144,7 +144,7 @@ if (-not $env:MSPACE_CAAS_DEBIT_URL) {
     Skip-Test "CaaS OTP Generation" "skipped (-WithCharge to run - starts a real charge)"
 } else {
     Write-Host "  !! This starts a REAL charge against $TestMsisdn and sends them an OTP." -ForegroundColor Yellow
-    Write-Host "     Money moves only when that OTP is verified - see references/05-caas.md." -ForegroundColor Yellow
+    Write-Host "     Money moves only when that OTP is verified - see references/06-caas.md." -ForegroundColor Yellow
     $trxId = [guid]::NewGuid().ToString("N")
     Write-Host "  externalTrxId: $trxId  (persist this before charging, in real code)" -ForegroundColor DarkGray
     Invoke-MspaceCall "CaaS OTP Generation (LKR 1)" $env:MSPACE_CAAS_DEBIT_URL @{

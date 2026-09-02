@@ -164,7 +164,7 @@ test("no template directory is missing from the templates index", () => {
 
 test("the any-stack reference and the entry points agree on the languages", () => {
   const sources = {
-    "references/11-any-stack.md": read("references/11-any-stack.md"),
+    "references/12-any-stack.md": read("references/12-any-stack.md"),
     "templates/README.md": read("templates/README.md"),
     "SKILL.md": read("SKILL.md"),
     "AGENTS.md": read("AGENTS.md"),

@@ -15,8 +15,10 @@ Ask, or find in the code:
 - A provisioned application? (`APP_00XXXX` + password) — if not, they are pre-provisioning; read
   `references/01-getting-started.md` and walk them through it. You can still build everything
   against the mSpace simulator from the developer bundle (`http://localhost:10001/`).
-- Which APIs were provisioned? Calling an unprovisioned service fails `E1309` no matter how
-  correct the payload.
+- Which of the six Inzpire APIs were provisioned — **SMS, USSD, Subscription, OTP, CaaS, LBS**?
+  Calling an unprovisioned service fails `E1309` no matter how correct the payload. The provisioning
+  form itself only offers SMS, USSD, CaaS and Subscription, so confirm OTP and LBS separately if the
+  product needs them.
 - Public HTTPS URLs for callbacks? Required for MO SMS, USSD, delivery reports and all
   notifications — five separate URL fields across four provisioning sections.
 - A **static egress IP** for *Allowed Host Address*? Required, and determined on the server that
@@ -27,8 +29,8 @@ Ask, or find in the code:
 mSpace is JSON over HTTPS, so build in whatever the project already uses. `templates/` ships config
 + client + callbacks for **TypeScript/Node, Python, Java, Go, PHP and C#**
 (`templates/README.md` indexes them); for anything else, take the calls from
-`references/13-curl-reference.md` and follow the seven components and the acceptance checklist in
-`references/11-any-stack.md`. Never add a second runtime for this.
+`references/14-curl-reference.md` and follow the seven components and the acceptance checklist in
+`references/12-any-stack.md`. Never add a second runtime for this.
 
 ## 3. Config before code
 
@@ -51,13 +53,13 @@ per service.
 generation succeeds with `P1003`; Subscriber List also accepts `S1001`. And read the detail from
 `statusDetail` *or* `statusDescription`, because CaaS OTP verification uses the second.
 
-Write it from `references/13-curl-reference.md`. Each endpoint is there as a runnable curl with
+Write it from `references/14-curl-reference.md`. Each endpoint is there as a runnable curl with
 every parameter defined and every response field explained: translate the request into the
 project's own HTTP client, one wrapper per service, and put the seven components from
-`references/11-any-stack.md` around them. Run the curl first — a payload proven by hand is one you
+`references/12-any-stack.md` around them. Run the curl first — a payload proven by hand is one you
 cannot get wrong in code.
 
-The error module is `references/08-status-codes.md`: every published code with its handling class,
+The error module is `references/09-status-codes.md`: every published code with its handling class,
 the six classes, and the per-service success sets. Build the sets from the Class column, or
 straight from `catalog/mspace-api.json`.
 
@@ -81,7 +83,7 @@ persist externalTrxId (PENDING)
   → charging notification settles it
 ```
 
-Never generate a fresh `externalTrxId` on a retry. See `references/05-caas.md`.
+Never generate a fresh `externalTrxId` on a retry. See `references/06-caas.md`.
 
 ## 6. Callbacks
 
@@ -95,7 +97,7 @@ node tools/mspace.mjs validate <id> '<payload you generated>'
 ```
 
 Both scripts are plain curl, so they verify a handler in any language. For a port into a stack with
-no template, finish with the acceptance checklist in `references/11-any-stack.md`.
+no template, finish with the acceptance checklist in `references/12-any-stack.md`.
 
 No provisioned application yet? Everything above still works against the mSpace simulator from the
 developer bundle. Point the `MSPACE_*_URL` variables at `http://localhost:10001/…`; it needs Java

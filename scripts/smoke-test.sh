@@ -139,7 +139,7 @@ elif [ "$WITH_CHARGE" != true ]; then
   skip "CaaS OTP Generation" "skipped (--with-charge to run — starts a real charge)"
 else
   echo "${YELLOW}  ⚠  This starts a REAL charge against $TEST_MSISDN and sends them an OTP.${NC}"
-  echo "${YELLOW}     Money moves only when that OTP is verified — see references/05-caas.md.${NC}"
+  echo "${YELLOW}     Money moves only when that OTP is verified — see references/06-caas.md.${NC}"
   TRX_ID=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
   echo "${DIM}  externalTrxId: $TRX_ID  (persist this before charging, in real code)${NC}"
   call "CaaS OTP Generation (LKR 1)" "$MSPACE_CAAS_DEBIT_URL" \

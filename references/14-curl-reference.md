@@ -222,7 +222,7 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `E1601` | transient | System experienced an unexpected error. |
 | `E1603` | transient | Temporary system error occurred while delivering your request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -324,7 +324,7 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `E1601` | transient | System experienced an unexpected error. |
 | `E1603` | transient | Temporary system error occurred while delivering your request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -401,9 +401,9 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 
 The mSpace documentation publishes no further per-code table for this endpoint. Treat any
 other code as a failure and decode it against the complete table in
-[08-status-codes.md](08-status-codes.md).
+[09-status-codes.md](09-status-codes.md).
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -480,9 +480,9 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 
 The mSpace documentation publishes no further per-code table for this endpoint. Treat any
 other code as a failure and decode it against the complete table in
-[08-status-codes.md](08-status-codes.md).
+[09-status-codes.md](09-status-codes.md).
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -556,9 +556,9 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 
 The mSpace documentation publishes no further per-code table for this endpoint. Treat any
 other code as a failure and decode it against the complete table in
-[08-status-codes.md](08-status-codes.md).
+[09-status-codes.md](09-status-codes.md).
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -629,9 +629,9 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 
 The mSpace documentation publishes no further per-code table for this endpoint. Treat any
 other code as a failure and decode it against the complete table in
-[08-status-codes.md](08-status-codes.md).
+[09-status-codes.md](09-status-codes.md).
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -731,7 +731,7 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `E1601` | transient | System experienced an unexpected error. |
 | `E1603` | transient | Temporary system error occurred while delivering your request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -826,7 +826,7 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `E1106` | client | Invalid Request Page. Page Number Should Be 1 Or Greater. |
 | `E1107` | client | Request Is Invalid. Refer the API documentation for the mandatory fields and correct format of the request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -905,9 +905,9 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 
 The mSpace documentation publishes no further per-code table for this endpoint. Treat any
 other code as a failure and decode it against the complete table in
-[08-status-codes.md](08-status-codes.md).
+[09-status-codes.md](09-status-codes.md).
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -925,7 +925,7 @@ Request an OTP for a subscriber's MSISDN. mSpace generates and sends the OTP; th
 | **Endpoint** | `POST https://api.mspace.lk/otp/request` |
 | **Environment variable** | `MSPACE_OTP_REQUEST_URL` |
 | **Content type** | `application/json;charset=utf-8` |
-| **Full guide** | [04-subscription.md](04-subscription.md) |
+| **Full guide** | [05-otp.md](05-otp.md) |
 
 ### Request parameters
 
@@ -991,7 +991,7 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `E1856` | client | Documented as "Invalid Request" on OTP Request, and as "OTP Not Found" on CaaS OTP verification and the charging notification. |
 | `E1857` | transient | Documented as "Internal Server Error Occur" on the OTP API, and as "Invalid Reference Number" on the charging notification. → Retry only on the OTP API path. On a charging notification it is terminal — reconcile the transaction and do not re-charge. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1011,7 +1011,7 @@ Verify the OTP a subscriber entered. On success the mSpace subscription process 
 | **Endpoint** | `POST https://api.mspace.lk/otp/verify` |
 | **Environment variable** | `MSPACE_OTP_VERIFY_URL` |
 | **Content type** | `application/json;charset=utf-8` |
-| **Full guide** | [04-subscription.md](04-subscription.md) |
+| **Full guide** | [05-otp.md](05-otp.md) |
 
 ### Request parameters
 
@@ -1075,7 +1075,7 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `E1855` | client | Invalid OTP reference number. → On CaaS, referenceNo must be the requestCorrelator returned by OTP generation; on the OTP API it must be the referenceNo returned by OTP Request. |
 | `E1857` | transient | Documented as "Internal Server Error Occur" on the OTP API, and as "Invalid Reference Number" on the charging notification. → Retry only on the OTP API path. On a charging notification it is terminal — reconcile the transaction and do not re-charge. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1094,7 +1094,7 @@ Start a one-time charge on the subscriber's mobile account. mSpace generates and
 | **Endpoint** | `POST https://api.mspace.lk/caas/direct/debit` |
 | **Environment variable** | `MSPACE_CAAS_DEBIT_URL` |
 | **Content type** | `application/json;charset=utf-8` |
-| **Full guide** | [05-caas.md](05-caas.md) |
+| **Full guide** | [06-caas.md](06-caas.md) |
 
 > **This call moves real money.** `externalTrxId` is the idempotency key: generate it,
 > persist it *before* sending, and reuse it unchanged on every resolution attempt. A retry with
@@ -1185,7 +1185,7 @@ HTTP 200. Success is `statusCode: "P1003"` — nothing else.
 | `E1608` | configuration | SLA configuration error. |
 | `E1852` | user-state | Maximum number of OTP attempts has been reached. → Stop accepting attempts against this reference and start a new OTP request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1206,7 +1206,7 @@ Verify the OTP the subscriber entered. On successful verification the one-time c
 | **Endpoint** | `POST https://api.mspace.lk/caas/otp/verify` |
 | **Environment variable** | `MSPACE_CAAS_OTP_VERIFY_URL` |
 | **Content type** | `application/json;charset=utf-8` |
-| **Full guide** | [05-caas.md](05-caas.md) |
+| **Full guide** | [06-caas.md](06-caas.md) |
 
 > **This call moves real money.** Settle the outcome from the charging notification rather than by calling again.
 
@@ -1271,7 +1271,7 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `E1856` | client | Documented as "Invalid Request" on OTP Request, and as "OTP Not Found" on CaaS OTP verification and the charging notification. |
 | `E9999` | transient | System error, reported by CaaS OTP verification. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1292,7 +1292,7 @@ Request the location of a subscriber. mSpace returns the location if the subscri
 | **Endpoint** | `POST https://api.mspace.lk/lbs/request` |
 | **Environment variable** | `MSPACE_LBS_REQUEST_URL` |
 | **Content type** | `application/json;charset=utf-8` |
-| **Full guide** | [06-lbs.md](06-lbs.md) |
+| **Full guide** | [07-lbs.md](07-lbs.md) |
 
 ### Request parameters
 
@@ -1362,9 +1362,9 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 
 The mSpace documentation publishes no further per-code table for this endpoint. Treat any
 other code as a failure and decode it against the complete table in
-[08-status-codes.md](08-status-codes.md).
+[09-status-codes.md](09-status-codes.md).
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1468,7 +1468,7 @@ PAYLOAD
 | `E1601` | transient | System experienced an unexpected error. |
 | `E1603` | transient | Temporary system error occurred while delivering your request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1560,7 +1560,7 @@ PAYLOAD
 | `E1601` | transient | System experienced an unexpected error. |
 | `E1603` | transient | Temporary system error occurred while delivering your request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1664,7 +1664,7 @@ PAYLOAD
 | `E1601` | transient | System experienced an unexpected error. |
 | `E1603` | transient | Temporary system error occurred while delivering your request. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1683,7 +1683,7 @@ Returned to your application upon a charging attempt, saying whether the chargin
 | **Your route** | `POST <your-host>/api/mspace/charging/notification` (the path is yours; register it on the application record) |
 | **Configured in** | CaaS configuration — Charging Notification URL |
 | **Deduplicate on** | `externalTrxId + statusCode` |
-| **Full guide** | [05-caas.md](05-caas.md) |
+| **Full guide** | [06-caas.md](06-caas.md) |
 
 ### Payload fields
 
@@ -1765,7 +1765,7 @@ PAYLOAD
 | `E1856` | client | Documented as "Invalid Request" on OTP Request, and as "OTP Not Found" on CaaS OTP verification and the charging notification. |
 | `E1857` | transient | Documented as "Internal Server Error Occur" on the OTP API, and as "Invalid Reference Number" on the charging notification. → Retry only on the OTP API path. On a charging notification it is terminal — reconcile the transaction and do not re-charge. |
 
-`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [08-status-codes.md](08-status-codes.md).
+`success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
 ### Rules
 
@@ -1794,7 +1794,7 @@ which is visible in a shell command:
 | **Acknowledge-first callbacks** | The replay commands return instantly. A real handler must respond `S1000` and then work out of band — USSD sessions time out in seconds. |
 
 Those seven, plus a shared USSD session store, are the whole specification. They are written out
-language-neutrally in [11-any-stack.md](11-any-stack.md), with an acceptance checklist for a
+language-neutrally in [12-any-stack.md](12-any-stack.md), with an acceptance checklist for a
 port. [templates/](../templates/README.md) shows the same seven already built in TypeScript/Node,
 Python, Java, Go, PHP and C# — worked examples to read for shape, not output to paste.
 
@@ -1808,4 +1808,4 @@ Python, Java, Go, PHP and C# — worked examples to read for shape, not output t
 | Decode a status code you received | `node tools/mspace.mjs code <statusCode>` |
 | Smoke-test the outbound path | [`scripts/smoke-test.sh`](../scripts/smoke-test.sh) (or `smoke-test.ps1`) |
 | Test every callback handler | [`scripts/test-callbacks.sh`](../scripts/test-callbacks.sh) |
-| Every status code, classified | [08-status-codes.md](08-status-codes.md) |
+| Every status code, classified | [09-status-codes.md](09-status-codes.md) |

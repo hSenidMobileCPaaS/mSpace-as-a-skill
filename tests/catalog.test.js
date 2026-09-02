@@ -422,18 +422,81 @@ test("diagnose degrades to search when nothing matches", () => {
 
 /* ── Repo consistency ────────────────────────────────────────────────────── */
 
-test("all thirteen reference documents exist", () => {
+test("all fourteen reference documents exist", () => {
   const files = readdirSync(join(repoRoot, "references")).filter((f) => f.endsWith(".md"));
-  assert.equal(files.length, 13, `expected 13 reference docs, found ${files.length}`);
+  assert.equal(files.length, 14, `expected 14 reference docs, found ${files.length}`);
 });
 
 /**
- * Error handling is built from the complete table in 08-status-codes.md, so every
+ * mSpace presents six co-equal APIs on its Inzpire services page. Folding one
+ * into another's document is how OTP ends up invisible to an agent scoping a
+ * web sign-up, so each gets a reference of its own and the catalog says so.
+ */
+test("every published Inzpire API is declared and documented", () => {
+  const apis = catalog.platform.apis;
+  assert.equal(apis.length, 6, "mSpace publishes six Inzpire APIs");
+  assert.deepEqual(
+    apis.map((a) => a.name),
+    ["SMS API", "USSD API", "Subscription API", "OTP API", "CaaS API", "LBS API"]
+  );
+
+  const categories = new Set(allEntries().map((e) => e.category));
+  for (const api of apis) {
+    assert.ok(api.summary?.length > 40, `${api.name} has no summary`);
+    assert.ok(
+      categories.has(api.category),
+      `${api.name} declares category "${api.category}", which no service or callback uses`
+    );
+    assert.ok(
+      existsSync(join(repoRoot, api.reference)),
+      `${api.name} points at a missing reference: ${api.reference}`
+    );
+    assert.ok(
+      catalog.services.some((s) => s.category === api.category),
+      `${api.name} has no outbound service`
+    );
+  }
+
+  // Nothing may be in the catalog that no declared API accounts for.
+  const declared = new Set(apis.map((a) => a.category));
+  for (const entry of allEntries()) {
+    assert.ok(
+      declared.has(entry.category),
+      `${entry.id} is in category "${entry.category}", which no Inzpire API declares`
+    );
+  }
+});
+
+test("the OTP API has its own reference, and its services point at it", () => {
+  const otp = catalog.services.filter((s) => s.category === "otp");
+  assert.deepEqual(otp.map((s) => s.id).sort(), ["otp-request", "otp-verify"]);
+  for (const service of otp) {
+    assert.equal(service.reference, "references/05-otp.md");
+  }
+
+  const doc = readFileSync(join(repoRoot, "references", "05-otp.md"), "utf8");
+  for (const fact of [
+    "/otp/request",
+    "/otp/verify",
+    "referenceNo",
+    "applicationMetaData",
+    "E1853",
+    "E1851",
+  ]) {
+    assert.ok(doc.includes(fact), `05-otp.md does not document ${fact}`);
+  }
+  // The two OTP flows are easy to conflate and expensive to conflate.
+  assert.match(doc, /requestCorrelator/);
+  assert.match(doc, /not interchangeable/i);
+});
+
+/**
+ * Error handling is built from the complete table in 09-status-codes.md, so every
  * code there must carry the same handling class the catalog and `mspace code`
  * report. A class that disagrees sends someone's retry logic the wrong way.
  */
 test("the status-code reference classifies every code exactly as the catalog does", () => {
-  const doc = readFileSync(join(repoRoot, "references", "08-status-codes.md"), "utf8");
+  const doc = readFileSync(join(repoRoot, "references", "09-status-codes.md"), "utf8");
   const table = doc.slice(doc.indexOf("## Complete status code list"));
   const rows = [...table.matchAll(/^\| `([SEP]\d{4})` \| (\S+) \| /gm)];
 
@@ -442,7 +505,7 @@ test("the status-code reference classifies every code exactly as the catalog doe
 
   assert.equal(documented.size, expected.length, "the complete list is missing codes");
   for (const [code, meta] of expected) {
-    assert.equal(documented.get(code), meta.class, `08-status-codes.md misclassifies ${code}`);
+    assert.equal(documented.get(code), meta.class, `09-status-codes.md misclassifies ${code}`);
   }
 });
 
@@ -482,7 +545,7 @@ test("the curl reference is in sync with the catalog", () => {
 });
 
 test("the curl reference documents every endpoint, parameter and response field", () => {
-  const doc = readFileSync(join(repoRoot, "references", "13-curl-reference.md"), "utf8");
+  const doc = readFileSync(join(repoRoot, "references", "14-curl-reference.md"), "utf8");
   const missing = [];
   // Pipes are escaped in the generated tables, or they would split a cell.
   const documents = (text) => doc.includes(String(text).replace(/\|/g, "\\|"));
@@ -518,7 +581,7 @@ test("the curl reference documents every endpoint, parameter and response field"
 });
 
 test("the curl reference contains no credential, only environment placeholders", () => {
-  const doc = readFileSync(join(repoRoot, "references", "13-curl-reference.md"), "utf8");
+  const doc = readFileSync(join(repoRoot, "references", "14-curl-reference.md"), "utf8");
   assert.match(doc, /"password": "\$MSPACE_PASSWORD"/);
   assert.doesNotMatch(doc, /"password"\s*:\s*"(?!\$MSPACE_PASSWORD)[^"]{6,}"/);
 });

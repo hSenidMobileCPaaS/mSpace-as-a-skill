@@ -29,7 +29,7 @@ use Throwable;
  * put the routes in routes/api.php (which is CSRF-exempt), and dispatch a queued
  * Job instead of calling handleJob() inline.
  *
- * Full rules: references/07-callbacks.md.
+ * Full rules: references/08-callbacks.md.
  */
 final class MspaceCallbacks
 {

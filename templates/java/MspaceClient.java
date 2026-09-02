@@ -79,7 +79,7 @@ public final class MspaceClient {
     //
     //   .sslContext(SSLContexts.custom().loadTrustMaterial(truststore, null).build())
     //
-    // See references/09-security-best-practices.md.
+    // See references/10-security-best-practices.md.
     this.http = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
   }
 

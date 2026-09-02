@@ -55,7 +55,7 @@ its message in `statusDescription` rather than `statusDetail`.
 2. **Is it actually failing, or is the client rejecting a success?** Print the raw
    `statusCode` before anything interprets it.
 3. **Is the payload even valid?** `node tools/mspace.mjs validate <id> '<json>'`.
-4. **Take the code out of it.** Run the endpoint by hand from `references/13-curl-reference.md`
+4. **Take the code out of it.** Run the endpoint by hand from `references/14-curl-reference.md`
    (or `node tools/mspace.mjs curl <id> key=value …`) **from the same server**. A curl that works
    proves the payload, the credentials, the provisioning and the egress IP are all fine, and the
    bug is in your code; a curl that fails gives you the real `statusCode` with nothing swallowing
@@ -78,5 +78,5 @@ Quote the identifiers: `requestId`, `externalTrxId`, `internalTrxId`, `requestCo
 `sessionId`, and the `statusCode`. Those are what a trace is built from.
 Platform and documentation: <https://mspace.lk> · <https://www.mobitel.lk/mspace>.
 
-Detail: `references/08-status-codes.md` and the failure table in
-`references/10-production-checklist.md`.
+Detail: `references/09-status-codes.md` and the failure table in
+`references/11-production-checklist.md`.

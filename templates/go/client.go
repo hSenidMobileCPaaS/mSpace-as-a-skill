@@ -95,7 +95,7 @@ type Client struct {
 //	pool.AppendCertsFromPEM(pem)
 //	transport := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}
 //
-// See references/09-security-best-practices.md.
+// See references/10-security-best-practices.md.
 func NewClient(config *Config) *Client {
 	return &Client{config: config, http: &http.Client{Timeout: timeout}}
 }

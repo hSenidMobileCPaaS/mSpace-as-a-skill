@@ -108,7 +108,7 @@ Consequences to design for:
 - **Whitelist the minimum.** Do not add a broad range "temporarily".
 - **Restrict inbound too.** Your callback URLs should accept traffic only from the platform's
   egress addresses. mSpace signs nothing, so source IP is the strongest control available. See
-  [07-callbacks.md](07-callbacks.md).
+  [08-callbacks.md](08-callbacks.md).
 
 ---
 

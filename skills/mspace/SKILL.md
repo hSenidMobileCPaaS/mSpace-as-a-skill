@@ -12,6 +12,25 @@ Two tracks: **Inzpire** (the API track — this skill) and **Xpand** (no-code Co
 and Scheduled Messages applications). If the requirement is fully covered by an Xpand template,
 say so rather than building an integration.
 
+## The six Inzpire APIs
+
+mSpace publishes six, and this skill has a reference document for each:
+
+| API | Reference | Endpoints |
+|---|---|---|
+| **SMS API** | `references/02-sms.md` | `POST /sms/send`, plus the MO and delivery-report callbacks |
+| **USSD API** | `references/03-ussd.md` | `POST /ussd/send`, plus the USSD receive callback |
+| **Subscription API** | `references/04-subscription.md` | `send`, `getStatus`, `query-base`, `getSubscriberChargingInfo`, `getSubscriberList`, `notify` |
+| **OTP API** | `references/05-otp.md` | `POST /otp/request`, `POST /otp/verify` |
+| **CaaS API** | `references/06-caas.md` | `POST /caas/direct/debit`, `POST /caas/otp/verify`, plus the charging notification |
+| **LBS API** | `references/07-lbs.md` | `POST /lbs/request` |
+
+`node tools/mspace.mjs list <category>` — `sms`, `ussd`, `subscription`, `otp`, `caas`, `lbs` —
+lists one API's services and callbacks with their contracts.
+
+Voice/IVR is not published, and neither is the balance retrieval the CaaS blurb mentions. Do not
+invent endpoints for either.
+
 ## Do this first — do not recall parameter names, query them
 
 ```bash
@@ -23,7 +42,7 @@ node tools/mspace.mjs code <statusCode>
 node tools/mspace.mjs platform                      # base URL, tracks, conventions
 ```
 
-**`references/13-curl-reference.md` is where every call comes from** — every endpoint as a runnable
+**`references/14-curl-reference.md` is where every call comes from** — every endpoint as a runnable
 curl, every parameter defined, the response and every response field, the status codes that
 endpoint returns, and every callback with a command that replays it against your handler.
 Translate the request into the host project's HTTP client and idiom; that is the call, in any
@@ -65,23 +84,24 @@ reports every successful charge request as a failure.
 
 mSpace is JSON over HTTPS: no runtime is privileged, and a Node sidecar for a Python, Java, Go, PHP
 or .NET project is the wrong answer. Every call is one HTTPS POST with a JSON body —
-`references/13-curl-reference.md` has all of them, so Ruby, Rust, Kotlin, Elixir or anything else
+`references/14-curl-reference.md` has all of them, so Ruby, Rust, Kotlin, Elixir or anything else
 is a first-class target. Working implementations for six languages ship in `templates/` (see
-`templates/README.md`); `references/11-any-stack.md` specifies the same seven components
+`templates/README.md`); `references/12-any-stack.md` specifies the same seven components
 language-neutrally, with an acceptance checklist for stacks with no template.
 
 ## Where the detail lives
 
-`references/01-getting-started.md` through `13-curl-reference.md`, and the per-language
-implementations in `templates/`. Read the reference for the service you are building before
-writing code.
+`references/01-getting-started.md` through `14-curl-reference.md`, and the per-language
+implementations in `templates/`. Read the reference for the API you are building against before
+writing code — one document per Inzpire API, then callbacks, status codes, security, the go-live
+checklist, the language-neutral spec, the playbook and the curl reference.
 
 No provisioned application yet? The mSpace developer bundle ships a local simulator at
 `http://localhost:10001/` — point the `MSPACE_*_URL` variables at it and the whole integration
 runs. See `references/01-getting-started.md`.
 
 Taking a project from nothing to production — or adding mSpace to an application that already has
-users — is `references/12-implementation-playbook.md`.
+users — is `references/13-implementation-playbook.md`.
 
 Related skills: `mspace-scaffold`, `mspace-callbacks`, `mspace-review`, `mspace-debug`,
 `mspace-golive`.

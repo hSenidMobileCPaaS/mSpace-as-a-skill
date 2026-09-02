@@ -39,14 +39,14 @@ The catalog is the source of truth. `catalog/mspace-api.json` drives the CLI, th
 the tests and much of the documentation. When a contract changes:
 
 1. Edit `catalog/mspace-api.json`.
-2. Run `node scripts/build-curl-reference.mjs` to regenerate `references/13-curl-reference.md`.
+2. Run `node scripts/build-curl-reference.mjs` to regenerate `references/14-curl-reference.md`.
 3. Update the matching `references/*.md` so prose and data agree.
 4. Run `npm test` — the suite checks that every referenced status code exists, every parameter is
    fully specified, every documented sample validates against its own schema, every callback has
    fields and a sample payload, every referenced file is present, and every endpoint, parameter and
    response field appears in the curl reference.
 
-`references/13-curl-reference.md` is generated from the catalog and carries a banner saying so;
+`references/14-curl-reference.md` is generated from the catalog and carries a banner saying so;
 `scripts/build-curl-reference.mjs --check` fails the build if it drifts. Never hand-edit it — fix
 the catalog or the builder.
 
@@ -54,7 +54,7 @@ the catalog or the builder.
 rather than the mSpace contract, so it ages with every ecosystem it covers while the contract barely
 moves — and it makes every uncovered language second-class. The curl reference is the delivery
 mechanism for an implementation, in every language equally. If a request for "a Kotlin client"
-arrives, the answer is a correct contract plus the seven components in `references/11-any-stack.md`,
+arrives, the answer is a correct contract plus the seven components in `references/12-any-stack.md`,
 not an emitter.
 
 **Do not invent anything the mSpace documentation does not publish.** Two rules follow from that:
@@ -85,7 +85,7 @@ Edit `AGENTS.md`, never a generated copy. CI fails if they drift.
 Templates are per-language ports of one specification. Adding a language means: a directory under
 `templates/` with config, client and callback handlers; the same `MSPACE_*` variable names as every
 other port; a row in `templates/README.md` and in the shipped-templates table in
-`references/11-any-stack.md`; and an entry in `TEMPLATE_LANGUAGES` in `tests/packaging.test.js`,
+`references/12-any-stack.md`; and an entry in `TEMPLATE_LANGUAGES` in `tests/packaging.test.js`,
 which enforces all of the above. mSpace is JSON over HTTPS — no guidance in this repo may assume a
 particular runtime.
 

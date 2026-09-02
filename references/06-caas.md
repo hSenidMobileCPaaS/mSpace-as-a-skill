@@ -131,7 +131,7 @@ into your mobile or web application to authorise the one-time charge.
 
 `P1003`, `E1300`, `E1301`, `E1302`, `E1303`, `E1312`, `E1313`, `E1315`, `E1316`, `E1325`,
 `E1329`, `E1330`, `E1337`, `E1342`, `E1343`, `E1371`, `E1601`, `E1603`, `E1604`, `E1607`,
-`E1608`, `E1852`. See [08-status-codes.md](08-status-codes.md) for each one's meaning and class.
+`E1608`, `E1852`. See [09-status-codes.md](09-status-codes.md) for each one's meaning and class.
 
 The ones specific to charging configuration are worth naming here:
 
@@ -265,7 +265,7 @@ This is your **reconciliation channel**:
 - Respond `{"statusCode":"S1000","statusDetail":"Success"}` promptly, as with every callback. If
   you return something the platform cannot parse, the charging path reports `E1607`.
 
-See [07-callbacks.md](07-callbacks.md).
+See [08-callbacks.md](08-callbacks.md).
 
 ---
 

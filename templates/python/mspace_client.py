@@ -45,7 +45,7 @@ TIMEOUT_SECONDS = 15
 #:
 #:     SSL_CONTEXT = ssl.create_default_context(cafile="certs/mspace-chain.pem")
 #:
-#: See references/09-security-best-practices.md.
+#: See references/10-security-best-practices.md.
 SSL_CONTEXT = ssl.create_default_context()
 
 # ── Errors ───────────────────────────────────────────────────────────────────

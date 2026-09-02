@@ -201,8 +201,8 @@ USSD is frequently the *front door* to another API:
 - **USSD → CaaS:** never charge inline. On mSpace a charge is *three* exchanges — OTP generation,
   OTP verification, then the charging notification — and the subscriber has to read an SMS in
   between. Acknowledge with `mt-fin` ("Processing, we'll SMS you"), then run the charge out of
-  band. See [05-caas.md](05-caas.md).
+  band. See [06-caas.md](06-caas.md).
 - **USSD → SMS:** the standard pattern for delivering anything longer than one screen.
 
 `POST /ussd/send` and the inbound USSD callback as runnable curls, with every parameter and
-response field defined: [13-curl-reference.md](13-curl-reference.md).
+response field defined: [14-curl-reference.md](14-curl-reference.md).

@@ -20,10 +20,10 @@ mobile-account charging, or telco SMS in Sri Lanka.**
 The platform is JSON over HTTPS, so **any language builds a complete integration** — write it in
 whatever the host project already uses. Every endpoint is written out as a runnable curl, with its
 parameters and its response defined, in
-[references/13-curl-reference.md](references/13-curl-reference.md): translate the request into the
+[references/14-curl-reference.md](references/14-curl-reference.md): translate the request into the
 project's HTTP client and you have the call, whatever the language. There is no code generator
 here on purpose — a curl is the same call in every language, where an emitter would serve six and
-age with their idioms. [references/11-any-stack.md](references/11-any-stack.md) specifies the
+age with their idioms. [references/12-any-stack.md](references/12-any-stack.md) specifies the
 surrounding integration language-neutrally, and reference implementations exist for
 TypeScript/Node, Python, Java, Go, PHP and C# as worked examples.
 
@@ -81,7 +81,7 @@ something fails.
 
 ### Write the call from the contract, not from memory
 
-**[references/13-curl-reference.md](references/13-curl-reference.md) is the source for every call,
+**[references/14-curl-reference.md](references/14-curl-reference.md) is the source for every call,
 in every language.** Each endpoint is written out at the wire: a runnable curl, every parameter
 defined with type and requiredness, the exact response, every response field explained, the status
 codes that endpoint returns — and the same for the inbound callbacks, including a command that
@@ -98,7 +98,7 @@ proves credentials, provisioning and the egress IP at once.
 **There is no code generator in this skill, by design.** An emitter covers only the languages
 someone wrote emitters for and ages with those languages' idioms rather than with the mSpace
 contract. Write the client in the project's own conventions from the contract above; the seven
-components it belongs in are in [references/11-any-stack.md](references/11-any-stack.md), and
+components it belongs in are in [references/12-any-stack.md](references/12-any-stack.md), and
 [templates/](templates/README.md) shows them already built in six languages as worked examples to
 read — never a reason to add one of those runtimes to a project.
 
@@ -109,21 +109,43 @@ read — never a reason to add one of those runtimes to a project.
 | Account, provisioning, credentials, the local simulator, first call | [references/01-getting-started.md](references/01-getting-started.md) |
 | Send / receive SMS, delivery reports | [references/02-sms.md](references/02-sms.md) |
 | USSD sessions and menus | [references/03-ussd.md](references/03-ussd.md) |
-| Register, **unregister**, status, **base size**, charging info, subscriber list, OTP | [references/04-subscription.md](references/04-subscription.md) |
-| Charging: the three-step OTP-authorised flow | [references/05-caas.md](references/05-caas.md) |
-| LBS location; services that are not published | [references/06-lbs.md](references/06-lbs.md) |
-| Inbound webhooks | [references/07-callbacks.md](references/07-callbacks.md) |
-| Status codes and error handling | [references/08-status-codes.md](references/08-status-codes.md) |
-| Secrets, TLS, personal data, consent | [references/09-security-best-practices.md](references/09-security-best-practices.md) |
-| Go-live checklist | [references/10-production-checklist.md](references/10-production-checklist.md) |
-| Building in a stack with no template | [references/11-any-stack.md](references/11-any-stack.md) |
-| Taking a project from nothing to production, or adding mSpace to an existing app | [references/12-implementation-playbook.md](references/12-implementation-playbook.md) |
-| **Every endpoint as curl** — request, parameter definitions, response, response fields | [references/13-curl-reference.md](references/13-curl-reference.md) |
+| Register, **unregister**, status, **base size**, charging info, subscriber list, notifications | [references/04-subscription.md](references/04-subscription.md) |
+| **OTP** — request and verify, to activate a subscription from a web or app sign-up | [references/05-otp.md](references/05-otp.md) |
+| Charging: the three-step OTP-authorised flow | [references/06-caas.md](references/06-caas.md) |
+| LBS location; services that are not published | [references/07-lbs.md](references/07-lbs.md) |
+| Inbound webhooks | [references/08-callbacks.md](references/08-callbacks.md) |
+| Status codes and error handling | [references/09-status-codes.md](references/09-status-codes.md) |
+| Secrets, TLS, personal data, consent | [references/10-security-best-practices.md](references/10-security-best-practices.md) |
+| Go-live checklist | [references/11-production-checklist.md](references/11-production-checklist.md) |
+| Building in a stack with no template | [references/12-any-stack.md](references/12-any-stack.md) |
+| Taking a project from nothing to production, or adding mSpace to an existing app | [references/13-implementation-playbook.md](references/13-implementation-playbook.md) |
+| **Every endpoint as curl** — request, parameter definitions, response, response fields | [references/14-curl-reference.md](references/14-curl-reference.md) |
 
 Working reference implementations in [templates/](templates/README.md) for TypeScript/Node,
 Python, Java, Go, PHP and C#. Read the one matching the project's stack for shape rather than
 inventing a different structure; for any other language, build the same seven components from the
 curl reference — and never introduce a new runtime to reach mSpace.
+
+---
+
+## The six Inzpire APIs
+
+mSpace publishes six APIs on its Inzpire services page. Every one of them is covered here:
+
+| API | What mSpace says it does | Reference |
+|---|---|---|
+| **SMS API** | Send messages to your subscriber base and receive messages from your subscribers, plus delivery reporting to track the status of the delivery | [02-sms](references/02-sms.md) |
+| **USSD API** | Initiate USSD sessions over a HTTP-based API — menu-driven applications, monetised per menu request, with an active session | [03-ussd](references/03-ussd.md) |
+| **Subscription API** | Register or unregister a subscriber, send subscription notifications, query subscription status and query subscriber base size | [04-subscription](references/04-subscription.md) |
+| **OTP API** | Incorporate a One Time Password verification process to enable subscription in the mobile application you develop | [05-otp](references/05-otp.md) |
+| **CaaS API** | Monetise your app with micro-payments — charge a specific amount from a subscriber's account | [06-caas](references/06-caas.md) |
+| **LBS API** | Request the location of a subscriber, returned if they have granted permission | [07-lbs](references/07-lbs.md) |
+
+`node tools/mspace.mjs platform` prints this list with the endpoint count for each.
+
+The CaaS description on that page also mentions retrieving account balance. The API documentation
+defines a `queryBalance` schema but publishes **no endpoint path** for it, so there is nothing to
+call — see [06-caas](references/06-caas.md). Voice and IVR are not in the documentation at all.
 
 ---
 
@@ -160,7 +182,7 @@ and the client should refuse to call it rather than fail with `E1309` at the pla
 | Voice / IVR, balance query | Not publicly documented — do not invent endpoints |
 
 Each of these as a runnable request, with every parameter and response field defined:
-[references/13-curl-reference.md](references/13-curl-reference.md).
+[references/14-curl-reference.md](references/14-curl-reference.md).
 
 ---
 

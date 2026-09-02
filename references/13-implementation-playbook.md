@@ -6,13 +6,13 @@ and **any** starting point. Work top to bottom on a new project; jump to
 code already exists.
 
 Every step below that says *write the call* means: take the endpoint from
-[13-curl-reference.md](13-curl-reference.md) — a runnable curl with every parameter defined and
+[14-curl-reference.md](14-curl-reference.md) — a runnable curl with every parameter defined and
 every response field explained — and translate the request into the project's own HTTP client.
 That is the same instruction whatever the language is; nothing in this playbook assumes one.
 
 ```bash
 node tools/mspace.mjs curl <id> [key=value ...]   # one endpoint, your values, validated
-node tools/mspace.mjs reference 13-curl-reference # all of them
+node tools/mspace.mjs reference 14-curl-reference # all of them
 ```
 
 ---
@@ -40,7 +40,7 @@ Run `node tools/mspace.mjs platform` for the base URL and conventions, and
 You are building the application around mSpace.
 
 **1. Choose the stack.** Whatever you would use anyway — mSpace is JSON over HTTPS. See
-[11-any-stack](11-any-stack.md).
+[12-any-stack](12-any-stack.md).
 
 **2. Config first, so no credential can ever land in source.**
 
@@ -49,16 +49,16 @@ cp templates/.env.example .env          # then fill in APP_ID + password
 ```
 
 One module reads those variables, validates at startup and fails loudly — see
-[11-any-stack §1](11-any-stack.md#1-config). Nothing else in the codebase touches the
+[12-any-stack §1](12-any-stack.md#1-config). Nothing else in the codebase touches the
 environment.
 
 **3. Write the client and the error module.**
 
 The client is one `post()` — credential injection, a 15-second timeout, `statusCode` branching
 with a **per-service success set** — plus a thin wrapper per service, each built from its entry in
-[13-curl-reference.md](13-curl-reference.md). The error module is the six handling classes from
-[08-status-codes](08-status-codes.md), whose complete table carries a class per code. Both are
-specified language-neutrally in [11-any-stack](11-any-stack.md), and
+[14-curl-reference.md](14-curl-reference.md). The error module is the six handling classes from
+[09-status-codes](09-status-codes.md), whose complete table carries a class per code. Both are
+specified language-neutrally in [12-any-stack](12-any-stack.md), and
 [templates/](../templates/README.md) shows them already built in six languages if one matches your
 stack.
 
@@ -120,7 +120,7 @@ Users already depend on this application. The integration must land without dist
    you will want to design properly rather than bolt on.
 5. **Map existing users to subscribers deliberately.** An existing account is not consent. You
    need a fresh opt-in, recorded, before Register or any charge — see
-   [09-security-best-practices](09-security-best-practices.md#5-consent).
+   [10-security-best-practices](10-security-best-practices.md#5-consent).
 6. **Keep the blast radius visible:** log `statusCode` from day one and alert on the configuration
    class (`E1303`, `E1313`, `E1309`, `E1104`) before you enable anything for users.
 
@@ -213,7 +213,7 @@ Money is a decimal type end to end, and the currency is `LKR`. **Never** generat
 ## 5. Callbacks: half the integration
 
 Five inbound routes, one contract. Write them from
-[13-curl-reference.md](13-curl-reference.md), which gives each published payload field by field,
+[14-curl-reference.md](14-curl-reference.md), which gives each published payload field by field,
 the response you must return, the dedupe key, and a curl that replays the exact payload against
 your route.
 
@@ -227,7 +227,7 @@ your route.
 
 Rules that are not negotiable: acknowledge `S1000` **before** doing work, always HTTP 200,
 deduplicate on the documented key, never trust the body. Full detail in
-[07-callbacks](07-callbacks.md).
+[08-callbacks](08-callbacks.md).
 
 Register the paths on the application record once and keep them stable — changing a path later
 means editing that record.
@@ -237,7 +237,7 @@ means editing that record.
 ## 6. Error handling that survives production
 
 Build one error module: every published code, its handling class, and the per-service success
-codes. The complete table in [08-status-codes](08-status-codes.md) carries a class per code, and
+codes. The complete table in [09-status-codes](09-status-codes.md) carries a class per code, and
 the same data is in `catalog/mspace-api.json` if you would rather generate the sets than retype
 them. Wire it in like this:
 
@@ -280,7 +280,7 @@ node tools/mspace.mjs checklist          # every item, with evidence required
 
 Run it against the real project and mark each item PASS / FAIL / CANNOT VERIFY with the evidence —
 a file path, a config value, a test run. The full list is in
-[10-production-checklist](10-production-checklist.md); the nine sections are credentials, network,
+[11-production-checklist](11-production-checklist.md); the nine sections are credentials, network,
 correctness, callbacks, charging, consent, privacy, operations and testing.
 
 The last question is the only one that matters: **is this safe to put in front of real subscribers
@@ -294,10 +294,10 @@ who can be charged real money?**
 |---|---|
 | See what exists | `mspace list` |
 | Get one contract exactly | `mspace show <service>` |
-| Write a call, in any language | [13-curl-reference.md](13-curl-reference.md), or `mspace curl <service> key=value …` |
-| Write the whole client | [11-any-stack](11-any-stack.md), the seven components |
-| Wire up error codes | [08-status-codes](08-status-codes.md), the Class column |
-| Write the webhooks | [13-curl-reference.md](13-curl-reference.md), the callbacks half |
+| Write a call, in any language | [14-curl-reference.md](14-curl-reference.md), or `mspace curl <service> key=value …` |
+| Write the whole client | [12-any-stack](12-any-stack.md), the seven components |
+| Wire up error codes | [09-status-codes](09-status-codes.md), the Class column |
+| Write the webhooks | [14-curl-reference.md](14-curl-reference.md), the callbacks half |
 | Check a payload | `mspace validate <service> '<json>'` |
 | Decode a failure | `mspace code <statusCode>` |
 | Diagnose a symptom | `mspace diagnose "<symptom>"` |

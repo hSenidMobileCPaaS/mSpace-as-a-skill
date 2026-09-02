@@ -48,11 +48,11 @@ integration from a suspended one.
 **In whatever language you already use.** mSpace is JSON over HTTPS, so nothing here is tied to one
 runtime:
 
-- [**Every endpoint as a runnable curl**](references/13-curl-reference.md) — the request, every
+- [**Every endpoint as a runnable curl**](references/14-curl-reference.md) — the request, every
   parameter defined, the response, every response field explained, and the same for every callback.
   Translate it into the HTTP client you already use and you have the call. No SDK, no generated
   code, no language second-class.
-- [**references/11-any-stack.md**](references/11-any-stack.md) specifies the integration around the
+- [**references/12-any-stack.md**](references/12-any-stack.md) specifies the integration around the
   calls language-neutrally — seven components, per-language notes, and an acceptance checklist —
   for Ruby, Rust, Kotlin, Elixir or anything else.
 - [**templates/**](templates/README.md) shows the whole thing already built in TypeScript/Node,
@@ -243,7 +243,7 @@ $ node tools/mspace.mjs code P1003
 
 ### Every endpoint as curl — the path for any language
 
-No SDK, no code generation, no Node: [references/13-curl-reference.md](references/13-curl-reference.md)
+No SDK, no code generation, no Node: [references/14-curl-reference.md](references/14-curl-reference.md)
 writes out all 14 endpoints and all 4 published callbacks at the wire — the request, every
 parameter defined, the response, every response field explained, and the status codes that endpoint
 can return.
@@ -303,7 +303,7 @@ $ node tools/mspace.mjs diagnose "every charge fails but the user gets an OTP"
   Fix
   Treat P1003 as success for the generation step, store requestCorrelator, collect the
   OTP, then call CaaS OTP Verification with referenceNo = requestCorrelator. Settle the
-  transaction from the charging notification. See references/05-caas.md.
+  transaction from the charging notification. See references/06-caas.md.
 ```
 
 ---
@@ -344,15 +344,18 @@ deployment story.
 
 ## Coverage
 
-| Service | Operations |
-|---|---|
-| **SMS** | Send (MT), send to the subscribed base (`tel:all`), receive (MO), delivery status reports |
-| **USSD** | Send screens, receive input, the `mo-init`/`mo-cont`/`mt-init`/`mt-cont`/`mt-fin` state machine |
-| **Subscription** | Register (opt-in), **unregister (opt-out)**, subscriber status, **query base size**, subscriber charging info (up to 10 at a time), paged subscriber list, subscriber notifications |
-| **OTP** | Request, verify, masked-MSISDN handoff |
-| **CaaS** | The three-step OTP-authorised charge: generation (`P1003`), verification (the money moves), charging notification (settlement) |
-| **LBS** | Request a subscriber's location, with `requesterId` and `subscriberId` as separate fields |
-| **Not published** | Voice/IVR and balance query — documented as absent, with no invented endpoints |
+All six APIs mSpace publishes on its [Inzpire services page](https://mspace.lk/serviceInzpire.html),
+one reference document each:
+
+| Inzpire API | Operations | Reference |
+|---|---|---|
+| **SMS API** | Send (MT), send to the subscribed base (`tel:all`), receive (MO), delivery status reports | [02-sms](references/02-sms.md) |
+| **USSD API** | Send screens, receive input, the `mo-init`/`mo-cont`/`mt-init`/`mt-cont`/`mt-fin` state machine | [03-ussd](references/03-ussd.md) |
+| **Subscription API** | Register (opt-in), **unregister (opt-out)**, subscriber status, **query base size**, subscriber charging info (up to 10 at a time), paged subscriber list, subscriber notifications | [04-subscription](references/04-subscription.md) |
+| **OTP API** | Request, verify, masked-MSISDN handoff — activating a subscription from a web or app sign-up | [05-otp](references/05-otp.md) |
+| **CaaS API** | The three-step OTP-authorised charge: generation (`P1003`), verification (the money moves), charging notification (settlement) | [06-caas](references/06-caas.md) |
+| **LBS API** | Request a subscriber's location, with `requesterId` and `subscriberId` as separate fields | [07-lbs](references/07-lbs.md) |
+| **Not published** | Voice/IVR, and the balance retrieval the CaaS blurb mentions — documented as absent, with no invented endpoints | [06-caas](references/06-caas.md) |
 
 The **Xpand** track — no-code Contact, Vote, Alert and Scheduled Messages applications — is
 described so an agent can tell a user when a template beats an integration.
@@ -367,7 +370,7 @@ described so an agent can tell a user when a template beats an integration.
 | Go | config, client, `net/http` callbacks (standard library only) |
 | PHP | config, client, framework-neutral callbacks with Laravel notes |
 | C# / .NET | options, typed client, ASP.NET Core callbacks + background worker |
-| Anything else | [references/13-curl-reference.md](references/13-curl-reference.md) — every endpoint as curl, with definitions — plus [references/11-any-stack.md](references/11-any-stack.md) for the seven components, per-language notes and an acceptance checklist |
+| Anything else | [references/14-curl-reference.md](references/14-curl-reference.md) — every endpoint as curl, with definitions — plus [references/12-any-stack.md](references/12-any-stack.md) for the seven components, per-language notes and an acceptance checklist |
 
 Plus the complete published status-code table, every callback contract, and the operational
 practices that keep an application approved.
@@ -440,7 +443,7 @@ Then ask your agent:
 > message, and can text STOP to unsubscribe.
 
 Starting from nothing, mid-build, or bolting mSpace onto an app that already has users? The A-to-Z
-route for each is [references/12-implementation-playbook.md](references/12-implementation-playbook.md).
+route for each is [references/13-implementation-playbook.md](references/13-implementation-playbook.md).
 
 ---
 
@@ -450,9 +453,10 @@ route for each is [references/12-implementation-playbook.md](references/12-imple
 SKILL.md · AGENTS.md              Entry points (Claude Code / everyone else)
 catalog/mspace-api.json           The whole contract as structured data
 tools/mspace.mjs                  Offline CLI over the catalog
-references/                       13 guides: per-service, callbacks, codes, security, go-live,
-                                  the language-neutral spec, the A-to-Z playbook, and every
-                                  endpoint as curl with its definitions
+references/                       14 guides: one per Inzpire API (SMS, USSD, Subscription, OTP,
+                                  CaaS, LBS), then callbacks, codes, security, go-live, the
+                                  language-neutral spec, the A-to-Z playbook, and every endpoint
+                                  as curl with its definitions
 templates/                        .env.example + working config, client and callback handlers
                                   in TypeScript/Node, Python, Java, Go, PHP and C#
 skills/ · commands/               7 task skills and their slash commands
@@ -473,7 +477,7 @@ node scripts/build-curl-reference.mjs        # regenerate the curl reference
 ```
 
 Two things are generated and CI fails if they drift: the seven agent rule files, from `AGENTS.md`,
-and `references/13-curl-reference.md`, from `catalog/mspace-api.json`. The test suite verifies that
+and `references/14-curl-reference.md`, from `catalog/mspace-api.json`. The test suite verifies that
 every referenced status code exists, every parameter is fully specified, every documented sample
 validates against its own schema, every endpoint and parameter appears in the curl reference, and
 no credential-shaped string is committed.

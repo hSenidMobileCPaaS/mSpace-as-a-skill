@@ -50,7 +50,7 @@ const TIMEOUT_MS = 15_000;
  *
  *   const agent = new https.Agent({ ca: fs.readFileSync("certs/mspace-chain.pem") });
  *
- * See references/09-security-best-practices.md.
+ * See references/10-security-best-practices.md.
  */
 const agent = new https.Agent({ keepAlive: true });
 

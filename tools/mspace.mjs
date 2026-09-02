@@ -270,7 +270,7 @@ function cmdCurl() {
       yourResponse: catalog.conventions.callbackAck,
       dedupeKey: entry.dedupeKey,
       testCommand: `curl -X POST 'http://localhost:3000${entry.suggestedPath}' \\\n  --header 'Content-Type: application/json' \\\n  --data '${JSON.stringify(entry.samplePayload)}'`,
-      reference: "references/13-curl-reference.md",
+      reference: "references/14-curl-reference.md",
     };
     return out(data, (d) => {
       console.log(`\n  ${yellow(d.note)}\n`);
@@ -317,7 +317,7 @@ function cmdCurl() {
     responseFields: entry.responseFields,
     validation,
     rules: entry.rules,
-    reference: "references/13-curl-reference.md",
+    reference: "references/14-curl-reference.md",
   };
 
   out(data, (d) => {
@@ -413,7 +413,7 @@ function cmdPractices() {
 }
 
 function cmdChecklist() {
-  const doc = readReference("10-production-checklist");
+  const doc = readReference("11-production-checklist");
   if (!doc) fail("Checklist not found.");
   if (JSON_MODE) {
     const items = doc
@@ -427,10 +427,10 @@ function cmdChecklist() {
 }
 
 const REFERENCE_DOCS = [
-  "01-getting-started", "02-sms", "03-ussd", "04-subscription", "05-caas",
-  "06-lbs", "07-callbacks", "08-status-codes", "09-security-best-practices",
-  "10-production-checklist", "11-any-stack", "12-implementation-playbook",
-  "13-curl-reference",
+  "01-getting-started", "02-sms", "03-ussd", "04-subscription", "05-otp",
+  "06-caas", "07-lbs", "08-callbacks", "09-status-codes",
+  "10-security-best-practices", "11-production-checklist", "12-any-stack",
+  "13-implementation-playbook", "14-curl-reference",
 ];
 
 function cmdReference() {
@@ -461,6 +461,17 @@ function cmdPlatform() {
       console.log(`    ${cyan(t.name.padEnd(10))} ${dim(t.url)}`);
       console.log(`      ${dim(t.summary)}`);
     });
+    console.log(`\n  ${bold("Inzpire APIs")}  ${dim("the six services mSpace publishes")}`);
+    for (const api of d.platform.apis || []) {
+      const outbound = catalog.services.filter((s) => s.category === api.category).length;
+      const inbound = catalog.callbacks.filter((c) => c.category === api.category).length;
+      const shape = inbound ? `${outbound} → · ${inbound} ←` : `${outbound} →`;
+      console.log(`    ${cyan(api.name.padEnd(18))} ${dim(`${shape}  ${api.reference}`)}`);
+      console.log(`      ${dim(api.summary)}`);
+      if (api.note) console.log(`      ${yellow("!")} ${dim(api.note)}`);
+    }
+    console.log(`    ${dim("→ you call mSpace   ← mSpace calls the URL you configured")}`);
+
     console.log(`\n  ${bold("Operator")}`);
     d.operators.forEach((o) => console.log(`    ${o.name.padEnd(10)} ${dim(o.note)}`));
     console.log(`\n  ${bold("Base URLs")}`);
@@ -493,7 +504,7 @@ function cmdHelp() {
     validate <id> <json|@file|->                     Check a payload against the spec
 
     Every endpoint and callback in that form, filled in and explained, is
-    references/13-curl-reference.md. Translate the request into the host project's HTTP
+    references/14-curl-reference.md. Translate the request into the host project's HTTP
     client — that is the integration, in any language.
 
   ${bold("DEBUG")}
@@ -515,7 +526,7 @@ function cmdHelp() {
     ${dim("$")} node tools/mspace.mjs curl sms-send destinationAddresses='["tel:94702725777"]' message="Hi"
     ${dim("$")} node tools/mspace.mjs validate sms-send '{"message":"hi","destinationAddresses":"tel:94702725777"}'
     ${dim("$")} node tools/mspace.mjs curl caas-otp-generation externalTrxId=ORD-1001 amount=5.00
-    ${dim("$")} node tools/mspace.mjs reference 13-curl-reference
+    ${dim("$")} node tools/mspace.mjs reference 14-curl-reference
 
   ${dim("Add --json to any command for machine-readable output.")}
   ${dim("Offline and read-only: no network calls, and it never sees your credentials.")}

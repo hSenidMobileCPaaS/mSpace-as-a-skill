@@ -20,7 +20,7 @@ package mspace
 // Returning anything the platform cannot parse is reported back as E1607.
 //
 // These are plain http.HandlerFunc values, so they mount unchanged on chi, gin
-// (via gin.WrapF), echo, or the standard mux. Full rules: references/07-callbacks.md.
+// (via gin.WrapF), echo, or the standard mux. Full rules: references/08-callbacks.md.
 
 import (
 	"context"

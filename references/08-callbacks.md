@@ -13,7 +13,7 @@ Provisioning defines five URLs, in four different configuration sections:
 | **SMS Receive (MO)** | A subscriber texts your short code with your keyword | SMS configuration — *Message Receiving URL* | [02-sms.md](02-sms.md) |
 | **SMS Delivery Report** | An MT SMS sent with `deliveryStatusRequest: "1"` reaches a final state | SMS configuration — *Delivery Report URL* | [02-sms.md](02-sms.md) |
 | **USSD Receive** | A subscriber dials your service code or presses a key | USSD configuration — *Connection URL* | [03-ussd.md](03-ussd.md) |
-| **Charging Notification** | A charging request completes | CaaS configuration — *Charging Notification URL* | [05-caas.md](05-caas.md) |
+| **Charging Notification** | A charging request completes | CaaS configuration — *Charging Notification URL* | [06-caas.md](06-caas.md) |
 | **Subscription Notification** | A subscription is created or removed | Subscription configuration — *Subscription Notification URL* | see below |
 
 > Four of these five have a published payload in the mSpace API documentation. **The subscription
@@ -70,7 +70,7 @@ handler(request):
 "Enqueue" means the stack's real background mechanism — a queue or broker, `BackgroundTasks` in
 FastAPI, `@Async` in Spring, a worker goroutine, a hosted service in .NET, a queued job in
 Laravel. Not a bare `await`, and not "it's fast enough". The per-stack table is in
-[11-any-stack.md](11-any-stack.md#6-callback-endpoints).
+[12-any-stack.md](12-any-stack.md#6-callback-endpoints).
 
 ### 2. Be idempotent
 
@@ -198,7 +198,7 @@ Complete working routes for all five callbacks, per stack:
 | PHP (framework-neutral, Laravel notes) | [templates/php/callbacks.php](../templates/php/callbacks.php) |
 | C# / ASP.NET Core | [templates/csharp/MspaceCallbacks.cs](../templates/csharp/MspaceCallbacks.cs) |
 
-Any other stack: [11-any-stack.md](11-any-stack.md).
+Any other stack: [12-any-stack.md](12-any-stack.md).
 
 ---
 
@@ -221,4 +221,4 @@ field, and **the same payload twice** (the idempotency test — the one people s
 Ready-made payloads for every callback: [scripts/test-callbacks.sh](../scripts/test-callbacks.sh),
 and all of them written out field by field — what arrives, what you must respond, the dedupe key,
 and a command that replays the exact payload against your route — in
-[13-curl-reference.md](13-curl-reference.md).
+[14-curl-reference.md](14-curl-reference.md).

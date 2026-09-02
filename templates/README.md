@@ -21,10 +21,10 @@ worse outcome than any template mismatch.
 Every port implements the same seven components and the same environment variable names. The
 language-neutral specification — including an acceptance checklist for stacks with no template
 here (Ruby, Rust, Kotlin, Elixir, …) — is
-[references/11-any-stack.md](../references/11-any-stack.md).
+[references/12-any-stack.md](../references/12-any-stack.md).
 
 **No template for your stack?** Nothing is missing. Take the calls from
-[references/13-curl-reference.md](../references/13-curl-reference.md) — every endpoint as a
+[references/14-curl-reference.md](../references/14-curl-reference.md) — every endpoint as a
 runnable curl, with every parameter and response field defined — and build the seven components
 around them. Every template on this page is that same contract, already ported.
 
@@ -72,4 +72,4 @@ exercises the whole integration without a provisioned application — see
 [references/01-getting-started.md](../references/01-getting-started.md#testing-before-provisioning).
 
 Then walk the acceptance checklist in
-[references/11-any-stack.md](../references/11-any-stack.md#acceptance-checklist-for-a-port).
+[references/12-any-stack.md](../references/12-any-stack.md#acceptance-checklist-for-a-port).

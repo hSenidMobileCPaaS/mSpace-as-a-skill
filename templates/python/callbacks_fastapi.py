@@ -21,7 +21,7 @@ The contract, for all five:
 
 Returning anything the platform cannot parse is reported back as E1607.
 
-Full rules: references/07-callbacks.md.
+Full rules: references/08-callbacks.md.
 """
 
 from __future__ import annotations

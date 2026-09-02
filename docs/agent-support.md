@@ -13,9 +13,9 @@ Which file each agent reads, and what you get.
 
 Every tier gets the full `references/`, `templates/`, `catalog/` and `tools/` — the CLI works
 anywhere the agent can run a shell command, which is the practical floor for all of them. Tiers say
-nothing about the language you build in: `references/13-curl-reference.md` gives every endpoint as
+nothing about the language you build in: `references/14-curl-reference.md` gives every endpoint as
 a runnable curl with its parameters and response defined, which is enough on its own in any
-language; `references/11-any-stack.md` specifies what surrounds the calls; and `templates/` shows
+language; `references/12-any-stack.md` specifies what surrounds the calls; and `templates/` shows
 both already built in TypeScript/Node, Python, Java, Go, PHP and C#.
 
 ## Matrix
@@ -75,7 +75,7 @@ node tools/mspace.mjs code P1003
 ```
 
 which is where the precision actually lives. An agent with no shell at all still reads
-`references/13-curl-reference.md`, which is the same contract written out.
+`references/14-curl-reference.md`, which is the same contract written out.
 
 ## Adding an agent
 

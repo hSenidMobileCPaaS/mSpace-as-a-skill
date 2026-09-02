@@ -36,7 +36,7 @@ failure, and an empty subscriber base as a broken integration. Make the success 
 the service wrapper, not a global constant.
 
 One more envelope irregularity: **CaaS OTP Verification returns `statusDescription`, not
-`statusDetail`**, plus a boolean `status`. See [05-caas.md](05-caas.md).
+`statusDetail`**, plus a boolean `status`. See [06-caas.md](06-caas.md).
 
 Codes starting `S` are success; `P` is provisional; `E` is an error.
 

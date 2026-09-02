@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
  * machine-to-machine POSTs with no cookie. Then rely on the source-IP allowlist, or you have
  * left an open endpoint.
  *
- * <p>Full rules: references/07-callbacks.md.
+ * <p>Full rules: references/08-callbacks.md.
  */
 @RestController
 @RequestMapping("/api/mspace")

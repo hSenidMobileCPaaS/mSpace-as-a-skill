@@ -200,7 +200,7 @@ export function validatePayload(entry, payload) {
  * The body goes in through an unquoted heredoc so that $MSPACE_APP_ID and
  * $MSPACE_PASSWORD expand from the environment: the command runs as printed,
  * and no credential is ever written down. Same shape as
- * references/13-curl-reference.md, so the two paths cannot drift.
+ * references/14-curl-reference.md, so the two paths cannot drift.
  */
 export function toCurl(service, payload, baseUrl) {
   return [
@@ -248,7 +248,7 @@ export const SIGNATURES = [
   {
     when: /p1003|charge.*(not|never) (happen|complete)|charge.*otp|otp.*charg|charging.*otp/,
     cause: "CaaS charging on mSpace is two calls, not one. POST /caas/direct/debit only generates an OTP and answers P1003; the money moves when the subscriber's OTP is verified with POST /caas/otp/verify, and the final outcome arrives on the charging notification.",
-    fix: "Treat P1003 as success for the generation step, store requestCorrelator, collect the OTP, then call CaaS OTP Verification with referenceNo = requestCorrelator. Settle the transaction from the charging notification. See references/05-caas.md.",
+    fix: "Treat P1003 as success for the generation step, store requestCorrelator, collect the OTP, then call CaaS OTP Verification with referenceNo = requestCorrelator. Settle the transaction from the charging notification. See references/06-caas.md.",
   },
   {
     when: /callback|webhook|notification.*(not|never)|no.*(callback|webhook)/,

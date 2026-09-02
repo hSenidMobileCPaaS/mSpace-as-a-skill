@@ -143,7 +143,7 @@ The platform delivers the SMS a subscriber sent to your short code with your key
 ```
 
 Respond **immediately**, before doing any real work. Full callback contract:
-[07-callbacks.md](07-callbacks.md).
+[08-callbacks.md](08-callbacks.md).
 
 ### Handling MO content
 
@@ -220,6 +220,6 @@ do.
   platform rejected the request rather than queueing it.
 
 Working `sendSms` and MO/DLR handlers in six languages: [templates/](../templates/README.md). Any
-other stack: [11-any-stack.md](11-any-stack.md), with all three endpoints as runnable curls —
+other stack: [12-any-stack.md](12-any-stack.md), with all three endpoints as runnable curls —
 parameters, response and response fields defined — in
-[13-curl-reference.md](13-curl-reference.md).
+[14-curl-reference.md](14-curl-reference.md).

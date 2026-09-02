@@ -101,7 +101,7 @@ Failure response — note there are no coordinates:
 
 The mSpace documentation publishes no per-code table for LBS beyond `S1000` for success and the
 `E1303` shown in the failure sample. Treat any other code as a failure and decode it against the
-complete table in [08-status-codes.md](08-status-codes.md).
+complete table in [09-status-codes.md](09-status-codes.md).
 
 ---
 
@@ -133,7 +133,7 @@ of this catalog, that includes:
   <https://mspace.lk>, and offer what actually solves the requirement: **USSD** covers interactive
   menus on any handset without voice, and **SMS** covers notification delivery.
 - **Balance query.** The OpenAPI document defines a `queryBalance` schema, but publishes no
-  endpoint path for it. See [05-caas.md](05-caas.md#balance-query-is-not-published).
+  endpoint path for it. See [06-caas.md](06-caas.md#balance-query-is-not-published).
 
 ### Extension pattern — adding a new service without restructuring
 
@@ -154,9 +154,9 @@ specification arrives:
        return post("new-thing", requireEndpoint("newThing"), input)
    ```
 5. **Add a callback route** if the service pushes notifications, following the shape in
-   [07-callbacks.md](07-callbacks.md).
+   [08-callbacks.md](08-callbacks.md).
 6. **Add an entry to `catalog/mspace-api.json`**, regenerate
-   [13-curl-reference.md](13-curl-reference.md), and add a smoke test in `scripts/`.
+   [14-curl-reference.md](14-curl-reference.md), and add a smoke test in `scripts/`.
 
 Every mSpace API shares one envelope — `applicationId` + `password` in, `statusCode` +
 `statusDetail` out. Any new service will too. Do not build a parallel client for it.

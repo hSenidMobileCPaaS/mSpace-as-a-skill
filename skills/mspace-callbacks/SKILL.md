@@ -30,7 +30,7 @@ vocabulary (`timeStamp`, `version`, `applicationId`, `subscriberId`, `frequency`
 accept those and tolerate anything else. Log the raw body on the first delivery in Limited
 Production and widen from there. Do not invent fields for it.
 
-All of them are written out in `references/13-curl-reference.md`: what arrives, every field
+All of them are written out in `references/14-curl-reference.md`: what arrives, every field
 defined, what you must respond, the dedupe key, and a curl that replays the exact payload against
 your own route. Write the handlers from that, in the project's own framework.
 
@@ -84,12 +84,12 @@ It covers valid, malformed, wrong-application, missing-field, oversized **and du
 the duplicate test is the one people skip. It is plain curl, so it tests a handler written in any
 language. The mSpace simulator from the developer bundle drives the same handlers locally.
 
-Every payload, field by field, with its replay command: `references/13-curl-reference.md`.
+Every payload, field by field, with its replay command: `references/14-curl-reference.md`.
 
 Working handlers, in the language of the host project:
 `templates/typescript/callbacks-nextjs.ts` (Next.js), `templates/python/callbacks_fastapi.py`,
 `templates/java/MspaceCallbackController.java` (Spring), `templates/go/callbacks.go`,
 `templates/php/callbacks.php`, `templates/csharp/MspaceCallbacks.cs` (ASP.NET Core). For any other
-stack, the per-language acknowledge-first table is in `references/11-any-stack.md`.
+stack, the per-language acknowledge-first table is in `references/12-any-stack.md`.
 
-Full contract: `references/07-callbacks.md`.
+Full contract: `references/08-callbacks.md`.

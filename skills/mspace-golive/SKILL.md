@@ -56,4 +56,4 @@ charged to a real person's phone bill.
 Finish with the FAIL items ordered by risk, and a plain statement: is this safe to put in front of
 real subscribers who can be charged real money?
 
-Full list: `references/10-production-checklist.md`.
+Full list: `references/11-production-checklist.md`.

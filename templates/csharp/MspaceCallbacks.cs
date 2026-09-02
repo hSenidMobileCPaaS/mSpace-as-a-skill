@@ -35,7 +35,7 @@ namespace Mspace;
 /// (<c>.AllowAnonymous().DisableAntiforgery()</c>) and rely on the source-IP allowlist instead,
 /// or you have left an open endpoint.</para>
 ///
-/// <para>Full rules: references/07-callbacks.md.</para>
+/// <para>Full rules: references/08-callbacks.md.</para>
 /// </summary>
 public static class MspaceCallbacks
 {
