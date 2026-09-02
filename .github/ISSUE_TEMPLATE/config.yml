@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: mSpace platform
+    url: https://mspace.lk
+    about: For account, provisioning, or platform questions, go to mSpace directly — mspace.lk or www.mobitel.lk/mspace.
+  - name: mSpace API documentation
+    url: https://mspace.lk/API_Documentation/mobitel_tap_api.html
+    about: The published contract this skill is derived from.
+  - name: Security issue
+    url: https://github.com/hSenidMobileCPaaS/mSpace-as-a-skill/blob/main/SECURITY.md
+    about: Do not open a public issue for anything involving a real credential.

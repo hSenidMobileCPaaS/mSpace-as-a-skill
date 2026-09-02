@@ -1,0 +1,7 @@
+{
+  "name": "mspace",
+  "version": "1.0.0",
+  "description": "mSpace telco integration skills — SMS, USSD, Subscription, OTP, CaaS charging and LBS.",
+  "skills": "./skills/",
+  "rules": "./.qoder/rules/"
+}

@@ -1,0 +1,42 @@
+{
+  "name": "mspace",
+  "version": "1.0.0",
+  "description": "Build correct mSpace integrations — SMS, USSD, Subscription, OTP, CaaS charging and LBS on Mobitel's Sri Lankan application platform.",
+  "author": {
+    "name": "hSenid Mobile Solutions",
+    "url": "https://www.hsenidmobile.com"
+  },
+  "homepage": "https://github.com/hSenidMobileCPaaS/mSpace-as-a-skill",
+  "repository": "https://github.com/hSenidMobileCPaaS/mSpace-as-a-skill",
+  "license": "UNLICENSED",
+  "keywords": [
+    "mspace",
+    "telco",
+    "sms",
+    "ussd",
+    "caas",
+    "sri-lanka"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "mSpace",
+    "shortDescription": "mSpace telco integration",
+    "longDescription": "Exact request/response contracts for every mSpace service, callback handler patterns, the full status-code table, credential hygiene and a go-live checklist.",
+    "category": "Integrations",
+    "capabilities": [
+      "Instructions",
+      "Skills",
+      "Commands"
+    ],
+    "websiteURL": "https://mspace.lk",
+    "defaultPrompt": [
+      "Add mSpace SMS and subscription to this app.",
+      "Why is this mSpace call returning E1303?",
+      "Review my mSpace integration before go-live."
+    ],
+    "brandColor": "#0B4C8C",
+    "logo": "./assets/mspace-logo.png",
+    "developerName": "hSenid Mobile Solutions",
+    "composerIcon": "./assets/mspace-logo.png"
+  }
+}

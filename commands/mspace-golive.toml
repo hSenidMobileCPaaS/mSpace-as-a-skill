@@ -1,0 +1,2 @@
+description = "Run the mSpace pre-production checklist"
+prompt = "Run the mSpace go-live check on this project using the mspace-golive skill. Work through `node tools/mspace.mjs checklist` item by item, marking each PASS, FAIL or CANNOT VERIFY with evidence. Finish with the FAIL items ordered by risk and a plain statement on production readiness."

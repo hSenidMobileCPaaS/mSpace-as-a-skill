@@ -1,0 +1,2 @@
+description = "Quick reference for the mSpace skill"
+prompt = "Show the mSpace skill quick reference from the mspace-help skill: the available commands, the services covered, and which reference document covers what."

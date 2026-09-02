@@ -1,0 +1,61 @@
+{
+  "name": "mspace-skill",
+  "version": "1.0.0",
+  "description": "Agent skill for building correct mSpace integrations — SMS, USSD, Subscription, OTP, CaaS charging and LBS on Mobitel's Sri Lankan application platform.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "keywords": [
+    "mspace",
+    "mobitel",
+    "sri-lanka",
+    "telco",
+    "sms",
+    "ussd",
+    "subscription",
+    "caas",
+    "mobile-account-charging",
+    "agent-skills",
+    "ai-agents",
+    "claude-code",
+    "cursor-rules"
+  ],
+  "homepage": "https://github.com/hSenidMobileCPaaS/mSpace-as-a-skill",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hSenidMobileCPaaS/mSpace-as-a-skill.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hSenidMobileCPaaS/mSpace-as-a-skill/issues"
+  },
+  "bin": {
+    "mspace": "./tools/mspace.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "AGENTS.md",
+    "catalog/",
+    "references/",
+    "skills/",
+    "commands/",
+    "templates/",
+    "tools/",
+    "scripts/",
+    "assets/",
+    "LICENSE"
+  ],
+  "scripts": {
+    "mspace": "node tools/mspace.mjs",
+    "curl": "node tools/mspace.mjs curl",
+    "test": "node --test tests/*.test.js",
+    "sync": "node scripts/sync-rules.mjs && node scripts/build-curl-reference.mjs",
+    "check": "node scripts/sync-rules.mjs --check && node scripts/build-curl-reference.mjs --check && npm test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "author": {
+    "name": "hSenid Mobile Solutions",
+    "url": "https://www.hsenidmobile.com"
+  },
+  "private": true
+}

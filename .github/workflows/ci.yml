@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Catalog and tooling tests
+        run: node --test tests/*.test.js
+
+  consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Agent rule copies are in sync with AGENTS.md
+        run: node scripts/sync-rules.mjs --check
+      - name: Curl reference is in sync with the catalog
+        run: node scripts/build-curl-reference.mjs --check
+      - name: Catalog is valid JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('catalog/mspace-api.json','utf8'))"
+      - name: Manifests are valid JSON
+        run: |
+          for f in .claude-plugin/*.json .codex-plugin/*.json .qoder-plugin/*.json gemini-extension.json opencode.json package.json; do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" || exit 1
+          done
+      - name: Shell scripts parse
+        run: bash -n scripts/smoke-test.sh && bash -n scripts/test-callbacks.sh
+      - name: CLI responds
+        run: |
+          node tools/mspace.mjs list --json > /dev/null
+          node tools/mspace.mjs show sms-send --json > /dev/null
+          node tools/mspace.mjs curl sms-send --json > /dev/null
+          node tools/mspace.mjs code E1303 --json > /dev/null
+          node tools/mspace.mjs code P1003 --json > /dev/null
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No credential-shaped strings committed
+        # Detect what a real credential looks like, rather than maintaining an
+        # allowlist of placeholder spellings — a new placeholder style should
+        # never break the build.
+        #
+        # A real mSpace password is a long unbroken alphanumeric run (the
+        # documented ones are 32 hex characters). Placeholders never are:
+        # "replace-me" has a hyphen, "…" is not alphanumeric, "$VAR" starts
+        # with a sigil, and an empty value has nothing after the "=".
+        #
+        # ci.yml is excluded from its own scan, or the patterns match themselves.
+        run: |
+          set -uo pipefail
+          found=0
+
+          if grep -rInE '"password"[[:space:]]*:[[:space:]]*"[A-Za-z0-9]{16,}"' \
+               --exclude-dir=.git --exclude=ci.yml .; then
+            echo "::error::A credential-shaped password value is committed."
+            found=1
+          fi
+
+          if grep -rInE 'MSPACE_PASSWORD=[A-Za-z0-9]{12,}' \
+               --exclude-dir=.git --exclude=ci.yml .; then
+            echo "::error::A real-looking MSPACE_PASSWORD is committed."
+            found=1
+          fi
+
+          if grep -rInE 'applicationId"[[:space:]]*:[[:space:]]*"APP_[0-9]{6}"[^}]*"password"[[:space:]]*:[[:space:]]*"[A-Za-z0-9]{16,}"' \
+               --exclude-dir=.git --exclude=ci.yml .; then
+            echo "::error::A complete applicationId + password pair is committed."
+            found=1
+          fi
+
+          if [ "$found" -ne 0 ]; then
+            echo "Rotate the credential on the mSpace platform before anything else — see SECURITY.md."
+            exit 1
+          fi
+          echo "No credentials found."

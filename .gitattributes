@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# Shell scripts must keep LF — CRLF makes them fail on Linux/macOS with
+# "bad interpreter: /usr/bin/env bash^M".
+*.sh text eol=lf
+
+# PowerShell is fine either way, but CRLF is the native convention.
+*.ps1 text eol=crlf

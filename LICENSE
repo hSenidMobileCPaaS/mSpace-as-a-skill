@@ -1,0 +1,60 @@
+PROPRIETARY SOFTWARE LICENCE
+
+Copyright © 2026 hSenid Mobile Solutions (Pvt) Ltd. All rights reserved.
+
+This skill — including the catalog, the reference documents, the templates, the tools, the
+scripts, the assets and every other file in this repository (together, "the Skill") — is the sole
+and exclusive property of hSenid Mobile Solutions (Pvt) Ltd ("hSenid Mobile"). It is licensed, not
+sold.
+
+1. GRANT
+
+hSenid Mobile grants you a non-exclusive, non-transferable, revocable licence to install the Skill
+into an AI coding assistant and to use it, unmodified, to build and operate your own mSpace
+integrations.
+
+That grant includes the copying strictly necessary to install and use the Skill for that purpose —
+cloning this repository, installing it as a plugin or skill, and keeping a local copy up to date.
+No other copying is permitted.
+
+Integration code that you produce with the assistance of the Skill is yours.
+
+2. RESTRICTIONS
+
+Except as expressly permitted above, you may not:
+
+  (a) copy the Skill or any part of it;
+  (b) modify, adapt, translate or create derivative works of the Skill;
+  (c) publish, distribute, mirror, fork or otherwise make the Skill available to any third party;
+  (d) sublicense, rent, lease, lend or sell the Skill;
+  (e) bundle or embed the Skill in any product or service that you distribute or sell; or
+  (f) remove or alter any copyright, trademark or other proprietary notice.
+
+3. TRADEMARKS
+
+"mSpace", "Inzpire", "Xpand", "Mobitel", "hSenid Mobile", and their respective logos are
+trademarks of their respective owners. Nothing in this licence grants you any right to use them.
+You may refer to mSpace by name when describing an integration you have built; you may not use the
+marks in your own product, service or marketing.
+
+4. NO WARRANTY
+
+THE SKILL IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NON-INFRINGEMENT. The mSpace platform evolves; verify anything security- or billing-critical
+against the official documentation before going live.
+
+5. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL HSENID MOBILE BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SKILL OR THE
+USE OR OTHER DEALINGS IN THE SKILL — including, without limitation, any charge applied to a
+subscriber, any message sent, or any regulatory consequence of an integration you build.
+
+6. TERMINATION
+
+This licence terminates automatically if you breach any of its terms. On termination you must stop
+using the Skill and delete every copy in your possession.
+
+For any permission beyond this — including modifying, redistributing or embedding the Skill —
+contact hSenid Mobile Solutions (Pvt) Ltd at https://www.hsenidmobile.com.

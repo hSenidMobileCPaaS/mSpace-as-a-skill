@@ -1,0 +1,2 @@
+description = "Diagnose a failing mSpace call or callback"
+prompt = "Diagnose this mSpace problem: {{args}}. Run `node tools/mspace.mjs diagnose` with the symptom, and `node tools/mspace.mjs code <statusCode>` if there is a code. Remember mSpace returns HTTP 200 for failures, so first confirm the code is reading statusCode at all — then confirm it is not rejecting a documented success (P1003 on CaaS OTP generation, S1001 on Subscriber List, statusDescription rather than statusDetail on CaaS OTP verification). Give the most likely cause and the specific fix."

@@ -1,0 +1,263 @@
+<!-- Generated from AGENTS.md by scripts/sync-rules.mjs. Do not edit directly. -->
+
+# mSpace Integration — Agent Instructions
+
+> Portable entry point for Cursor, Windsurf, GitHub Copilot, Codex, Cline, Aider, Zed and any
+> other agent that reads `AGENTS.md`. Claude Code and the Agent SDK use [SKILL.md](SKILL.md) —
+> same content, skill frontmatter.
+
+mSpace is Mobitel's application platform for **Sri Lanka**. It exposes SMS, USSD, subscription
+management, mobile-account charging, OTP verification and location as JSON-over-HTTPS APIs.
+
+It has two tracks: **Inzpire**, the API track this skill is about, and **Xpand**, a no-code track
+for Contact, Vote, Alert and Scheduled Messages applications. If the requirement is fully covered
+by an Xpand template, say so rather than building an integration.
+
+**Apply these instructions whenever the work involves mSpace, Inzpire, Xpand, `api.mspace.lk`,
+`tel:` MSISDN addressing, USSD menus, short code and keyword routing, subscriber base size,
+mobile-account charging, or telco SMS in Sri Lanka.**
+
+The platform is JSON over HTTPS, so **any language builds a complete integration** — write it in
+whatever the host project already uses. Every endpoint is written out as a runnable curl, with its
+parameters and its response defined, in
+[references/13-curl-reference.md](references/13-curl-reference.md): translate the request into the
+project's HTTP client and you have the call, whatever the language. There is no code generator
+here on purpose — a curl is the same call in every language, where an emitter would serve six and
+age with their idioms. [references/11-any-stack.md](references/11-any-stack.md) specifies the
+surrounding integration language-neutrally, and reference implementations exist for
+TypeScript/Node, Python, Java, Go, PHP and C# as worked examples.
+
+---
+
+## Non-negotiable rules
+
+1. **Never hardcode `applicationId` or `password`.** Environment variables only, read through one
+   config module, validated at startup. Not in source, not in a client bundle, not in a committed
+   file, not in a log, not in git history. For CaaS the password is the API key mailed to you on
+   application approval — move it out of that inbox.
+2. **Never call mSpace from client-side code.** Browsers and mobile apps call *your* backend; your
+   backend calls mSpace. The credentials are a shared secret and the platform enforces the
+   *Allowed Host Address* list.
+3. **Never subscribe or charge without explicit, recorded consent**, and never without disclosing
+   the amount and frequency first. Both are provisioning-level settings on the application.
+4. **Never assume `subscriberId` is a real phone number.** With Mobile Number Masking enabled it
+   is a masked value. Store and send back exactly what you received.
+5. **Charging is idempotent on `externalTrxId`**, persisted *before* the call and reused unchanged
+   on any resolution attempt. Never retry with a fresh one.
+6. **`S1000` is not the only success code.** CaaS OTP generation succeeds with **`P1003`**, and
+   Subscriber List treats **`S1001`** ("No Subscribers Found") as a success.
+
+---
+
+## Query the API catalog instead of guessing
+
+This repo ships the complete mSpace contract as structured data
+([`catalog/mspace-api.json`](catalog/mspace-api.json)) plus a zero-dependency CLI over it.
+**Run these instead of recalling parameter names** — they are offline, read-only, need no install,
+and never see credentials.
+
+```bash
+node tools/mspace.mjs list [category]              # every service and callback
+node tools/mspace.mjs show <id>                    # full contract: params, response, rules
+node tools/mspace.mjs search "<query>"             # find by intent, e.g. "base size"
+node tools/mspace.mjs curl <id> [key=value ...]    # runnable request + param/response defs
+node tools/mspace.mjs validate <id> '<json>'       # check a payload against the spec
+node tools/mspace.mjs code <statusCode>            # decode a status code + the fix
+node tools/mspace.mjs diagnose "<symptom>"         # cause and fix from a symptom
+node tools/mspace.mjs practices [severity]         # security and reliability rules
+node tools/mspace.mjs checklist                    # go-live checklist
+node tools/mspace.mjs reference <doc>              # print a reference document
+node tools/mspace.mjs platform                     # base URL, tracks, operator, conventions
+```
+
+Add `--json` to any command for machine-readable output. If you cannot run commands — or Node is
+not installed — read `catalog/mspace-api.json` directly; it is plain JSON with the same data. The
+CLI is a documentation reader, not part of the integration, and constrains nothing about the stack
+you build in.
+
+**Use them in this order:** `search` or `list` to find the service → `show` for the exact
+contract → the curl reference for the call → `validate` the payload → `code` / `diagnose` when
+something fails.
+
+### Write the call from the contract, not from memory
+
+**[references/13-curl-reference.md](references/13-curl-reference.md) is the source for every call,
+in every language.** Each endpoint is written out at the wire: a runnable curl, every parameter
+defined with type and requiredness, the exact response, every response field explained, the status
+codes that endpoint returns — and the same for the inbound callbacks, including a command that
+replays each one against your handler.
+
+Translate the request into the host project's HTTP client and idiom, keeping the payload, the
+`statusCode` branching and the per-service success codes exactly as specified. Body, headers and
+branching are identical everywhere, so no language is second-class. `node tools/mspace.mjs curl
+<id> key=value …` prints the same thing for one service with your values filled in and validated.
+
+Run the curl by hand when a call fails: it separates a bad payload from bad code in one step, and
+proves credentials, provisioning and the egress IP at once.
+
+**There is no code generator in this skill, by design.** An emitter covers only the languages
+someone wrote emitters for and ages with those languages' idioms rather than with the mSpace
+contract. Write the client in the project's own conventions from the contract above; the seven
+components it belongs in are in [references/11-any-stack.md](references/11-any-stack.md), and
+[templates/](templates/README.md) shows them already built in six languages as worked examples to
+read — never a reason to add one of those runtimes to a project.
+
+## Read before writing code
+
+| Task | File |
+|---|---|
+| Account, provisioning, credentials, the local simulator, first call | [references/01-getting-started.md](references/01-getting-started.md) |
+| Send / receive SMS, delivery reports | [references/02-sms.md](references/02-sms.md) |
+| USSD sessions and menus | [references/03-ussd.md](references/03-ussd.md) |
+| Register, **unregister**, status, **base size**, charging info, subscriber list, OTP | [references/04-subscription.md](references/04-subscription.md) |
+| Charging: the three-step OTP-authorised flow | [references/05-caas.md](references/05-caas.md) |
+| LBS location; services that are not published | [references/06-lbs.md](references/06-lbs.md) |
+| Inbound webhooks | [references/07-callbacks.md](references/07-callbacks.md) |
+| Status codes and error handling | [references/08-status-codes.md](references/08-status-codes.md) |
+| Secrets, TLS, personal data, consent | [references/09-security-best-practices.md](references/09-security-best-practices.md) |
+| Go-live checklist | [references/10-production-checklist.md](references/10-production-checklist.md) |
+| Building in a stack with no template | [references/11-any-stack.md](references/11-any-stack.md) |
+| Taking a project from nothing to production, or adding mSpace to an existing app | [references/12-implementation-playbook.md](references/12-implementation-playbook.md) |
+| **Every endpoint as curl** — request, parameter definitions, response, response fields | [references/13-curl-reference.md](references/13-curl-reference.md) |
+
+Working reference implementations in [templates/](templates/README.md) for TypeScript/Node,
+Python, Java, Go, PHP and C#. Read the one matching the project's stack for shape rather than
+inventing a different structure; for any other language, build the same seven components from the
+curl reference — and never introduce a new runtime to reach mSpace.
+
+---
+
+## Service map
+
+Production host `https://api.mspace.lk`.
+
+**Configure one environment variable per provisioned service**, not one base URL — an application
+can only call the APIs it was provisioned for. An unset endpoint means that API is not enabled,
+and the client should refuse to call it rather than fail with `E1309` at the platform. See
+[templates/.env.example](templates/.env.example).
+
+| Need | Endpoint |
+|---|---|
+| Send SMS (MT) | `POST /sms/send` |
+| Send to the subscribed base | `POST /sms/send` with `destinationAddresses: ["tel:all"]` |
+| Receive SMS (MO) | *your Message Receiving URL* |
+| Delivery report | *your Delivery Report URL* |
+| USSD screen out | `POST /ussd/send` |
+| USSD input in | *your USSD Connection URL* |
+| Register (opt-in) | `POST /subscription/send` with `action: "1"` |
+| **Unregister (opt-out)** | `POST /subscription/send` with `action: "0"` |
+| Subscriber status | `POST /subscription/getStatus` |
+| **Subscriber base size** | `POST /subscription/query-base` |
+| Last-charge details for up to 10 subscribers | `POST /subscription/getSubscriberChargingInfo` |
+| Subscriber list, paged | `POST /subscription/getSubscriberList` |
+| Subscriber notification | `POST /subscription/notify` |
+| Subscription change notification | *your Subscription Notification URL* |
+| OTP request / verify (subscription activation) | `POST /otp/request`, `POST /otp/verify` |
+| **Start a charge** (sends an OTP, returns `P1003`) | `POST /caas/direct/debit` |
+| **Complete the charge** (verifies the OTP, moves the money) | `POST /caas/otp/verify` |
+| Charging outcome | *your Charging Notification URL* |
+| Locate a subscriber | `POST /lbs/request` |
+| Voice / IVR, balance query | Not publicly documented — do not invent endpoints |
+
+Each of these as a runnable request, with every parameter and response field defined:
+[references/13-curl-reference.md](references/13-curl-reference.md).
+
+---
+
+## The universal request/response shape
+
+```
+POST {baseUrl}/{path}
+Content-Type: application/json;charset=utf-8
+
+{ "applicationId": "APP_001807", "password": "…", "version": "1.0", …fields… }
+```
+
+```json
+{ "statusCode": "S1000", "statusDetail": "Success", "version": "1.0" }
+```
+
+So: **one `post()` helper that injects credentials and takes the success set as a parameter, plus
+thin wrappers per service.** Do not write bespoke HTTP calls per endpoint, in any language.
+
+**Two envelope irregularities to code for:**
+
+- **CaaS OTP generation succeeds with `P1003`**, and **Subscriber List also accepts `S1001`**.
+- **CaaS OTP verification returns `statusDescription`, not `statusDetail`**, plus a boolean
+  `status`.
+
+**Addressing** — always `tel:`-prefixed, no `+`, no spaces:
+
+```
+tel:94702725777          plain MSISDN
+tel:hu3b84346f…          masked value (Mobile Number Masking) — opaque
+tel:all                  the subscribed base (SMS send only — guard this)
+```
+
+Normalise in one helper. Never concatenate `tel:` inline. The one field that is *not* a subscriber
+address is SMS `sourceAddress`: that is the Default Sender Address or a configured alias, and it
+carries no `tel:` prefix.
+
+---
+
+## Mistakes to avoid
+
+- ❌ Checking the HTTP status as success (`res.ok`, `raise_for_status()`,
+  `EnsureSuccessStatusCode()`, `http_errors`) — **mSpace returns 200 for errors.** Branch on
+  `statusCode`.
+- ❌ Hard-coding `statusCode === "S1000"` as the only success — that reports every successful
+  charge request (`P1003`) as a failure and an empty subscriber base (`S1001`) as an error.
+- ❌ Reading only `statusDetail` — CaaS OTP verification puts the message in `statusDescription`.
+- ❌ Treating `POST /caas/direct/debit` as "the charge". It only sends an OTP. The money moves on
+  `POST /caas/otp/verify`, and the charging notification settles it.
+- ❌ Passing your `externalTrxId` as `referenceNo` to CaaS OTP verification — it wants the
+  `requestCorrelator` from the generation response, or you get `E1855`.
+- ❌ Retrying a charge with a new `externalTrxId` after a timeout — double charge.
+- ❌ `destinationAddresses: "tel:94…"` — it is always an **array**.
+- ❌ Omitting `version` on SMS Send or USSD Send, where it is mandatory.
+- ❌ Looking for a top-level `messageId` on an SMS send response — the identifiers are per
+  recipient, inside `destinationResponses`.
+- ❌ Treating subscription status as a two-state field. There are six: `INITIAL`, `REG_PENDING`,
+  `TRIAL`, `REGISTERED`, `UNREGISTERED`, `TEMPORARY_BLOCKED`.
+- ❌ Sending more than 10 `subscriberIds` to Subscriber Charging Info, or a `requestPage` below 1
+  to Subscriber List (`E1106`).
+- ❌ Swapping LBS `requesterId` and `subscriberId` — they are separate mandatory fields, and
+  swapping them locates the wrong person. Its response also uses `messageID` and `timestamp`, with
+  casing that differs from every other service.
+- ❌ Generating your own USSD `sessionId` — echo the USSD Gateway's.
+- ❌ Ending a USSD flow with `mt-cont` — terminal screens use `mt-fin`.
+- ❌ An in-process USSD session store (`Map`, `dict`, `HashMap`, package-level `map`) in
+  production — breaks across instances.
+- ❌ Doing work before acknowledging a callback — sessions time out in seconds. Use the stack's
+  real background mechanism, not a bare `await`. An unparseable response comes back as `E1607`.
+- ❌ Disabled TLS verification in shipped code — `rejectUnauthorized: false`, `verify=False`,
+  `InsecureSkipVerify`, `CURLOPT_SSL_VERIFYPEER => false`, a trust-all `TrustManager`. Supply the
+  intermediate CA instead.
+- ❌ `NEXT_PUBLIC_` / `VITE_` / `REACT_APP_` / `PUBLIC_` / `EXPO_PUBLIC_` on any mSpace variable,
+  or serving it through a client-facing config endpoint — that ships the password to the browser.
+- ❌ Standing up a Node sidecar (or any second runtime) to call mSpace from a non-JS project.
+- ❌ Logging `password`, the OTP, `referenceNo`, `requestCorrelator`, or an unmasked
+  `subscriberId`.
+- ❌ Inventing an IVR or balance-query endpoint — there is no public specification for either.
+
+---
+
+## When you generate code, always
+
+- Put credentials in `.env` (git-ignored) with a placeholder-only `.env.example`.
+- Validate config at startup and fail loudly on missing variables.
+- Set an explicit timeout on every call.
+- Branch on `statusCode`, with the success set as a per-service parameter, and map codes to
+  behaviour classes (success / pending / configuration / client / user-state / transient).
+- Retry only transient codes and transport errors, with backoff — never a charge with a new ID.
+- Model charging as a persisted state machine over three exchanges, keyed by `externalTrxId`, and
+  store `requestCorrelator` and `internalTrxId` from the generation response.
+- Make callback handlers acknowledge first, validate the schema, verify `applicationId` where the
+  payload carries it, and deduplicate.
+- Log `requestId` / `sessionId` / `externalTrxId` / `internalTrxId` / `statusCode`; mask subscriber
+  addresses.
+- Mirror subscription state locally from the Subscription Notification URL instead of polling
+  `getStatus`, and use Subscriber List to catch up on notifications you missed.
+- Use a decimal type for money — `BigDecimal`, `decimal.Decimal`, `decimal`, `bcmath`, a decimal
+  library, or integer minor units. Never a binary float. The currency is `LKR`.
+- Match the host project's existing stack, structure and conventions.
