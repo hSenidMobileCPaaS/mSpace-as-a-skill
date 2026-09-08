@@ -230,7 +230,7 @@ export interface SubscriberListResponse extends MspaceBaseResponse {
 export type NotificationFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface SubscriberNotifyRequest extends MspaceCredentials {
-  /** "yyMMddHHmm". */
+  /** "yyyyMMddHHmmss" — the form every published wire sample uses. */
   timeStamp: string;
   version: string;
   subscriberId: string;

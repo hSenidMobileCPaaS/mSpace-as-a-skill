@@ -162,10 +162,15 @@ func DetailOf(data map[string]any) string {
 	return description
 }
 
-// FormatNotifyTimestamp renders yyMMddHHmm, the documented timestamp format for
+// FormatNotifyTimestamp renders yyyyMMddHHmmss, the timestamp format for
 // subscriber notifications.
+//
+// The documentation describes the format in prose as yyMMddHHmm (10 digits) but
+// publishes a 14-digit sample, 20120113082110 — and every other timestamp on the
+// platform, the delivery report callback included, is 14 digits too. Send the
+// form the platform's own wire samples use.
 func FormatNotifyTimestamp(moment time.Time) string {
-	return moment.UTC().Format("0601021504")
+	return moment.UTC().Format("20060102150405")
 }
 
 /* ── Core ────────────────────────────────────────────────────────────────── */

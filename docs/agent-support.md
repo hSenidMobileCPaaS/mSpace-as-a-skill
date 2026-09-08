@@ -71,6 +71,8 @@ still has the complete `references/`, and can still run:
 ```bash
 node tools/mspace.mjs show caas-otp-generation
 node tools/mspace.mjs curl caas-otp-generation
+node tools/mspace.mjs validate caas-otp-generation '<the body you sent>'
+node tools/mspace.mjs response caas-otp-generation '<the body you got>'
 node tools/mspace.mjs code P1003
 ```
 

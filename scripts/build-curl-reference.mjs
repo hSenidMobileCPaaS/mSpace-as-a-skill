@@ -17,7 +17,14 @@
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { catalog, lookupStatusCode, repoRoot, urlFor } from "../tools/catalog.mjs";
+import {
+  buildPayload,
+  catalog,
+  lookupStatusCode,
+  repoRoot,
+  successCodesFor,
+  urlFor,
+} from "../tools/catalog.mjs";
 
 const OUT = join(repoRoot, "references", "14-curl-reference.md");
 const check = process.argv.includes("--check");
@@ -36,31 +43,23 @@ const anchor = (heading) =>
     .replace(/\s+/g, "-");
 
 /**
- * The example body for a service: credentials as environment placeholders, then
- * every parameter the official sample carries, in the order the contract
- * declares them. Required parameters with no sample value get a named
- * placeholder so nothing runnable is silently missing.
+ * The example body for a service.
+ *
+ * Built by the same function the CLI uses, so the page and
+ * `mspace curl <id>` cannot print different bodies for the same endpoint —
+ * which they did while each had its own builder.
  */
-function exampleBody(service) {
-  const body = {
-    applicationId: "$MSPACE_APP_ID",
-    password: "$MSPACE_PASSWORD",
-  };
-  for (const p of service.parameters || []) {
-    if (p.name === "applicationId" || p.name === "password") continue;
-    const sample = service.sampleRequest?.[p.name];
-    if (sample !== undefined) body[p.name] = sample;
-    else if (p.required) body[p.name] = `<${p.name}>`;
-  }
-  return body;
-}
+const exampleBody = (service) => buildPayload(service);
 
 function parameterTable(spec, { label = "Parameter", required = "Required" } = {}) {
   const rows = spec.map((p) => {
     const type = p.enum ? `enum` : md(p.type);
     const values = p.enum ? ` One of \`${p.enum.join("\`, \`")}\`.` : "";
+    // A value the caller has to produce fresh is the one thing a sample body
+    // teaches wrongly, so it is called out where the parameter is defined.
+    const fresh = p.perRequest ? ` **${md(p.perRequest.note)}**` : "";
     const need = p.required ? `**${required}**` : "Optional";
-    return `| \`${p.name}\` | ${type} | ${need} | ${md(p.description)}${md(values)} |`;
+    return `| \`${p.name}\` | ${type} | ${need} | ${md(p.description)}${md(values)}${fresh} |`;
   });
   return [`| ${label} | Type | | Definition |`, `|---|---|---|---|`, ...rows].join("\n");
 }
@@ -266,13 +265,30 @@ function serviceSection(s) {
   parts.push(requestCurl(s) + "\n");
 
   parts.push(`### Response\n`);
-  const success = s.sampleResponse?.statusCode || "S1000";
-  parts.push(`HTTP 200. Success is \`statusCode: "${success}"\` — nothing else.\n`);
+  const success = successCodesFor(s);
+  const codes = success.map((c) => `\`${c}\``).join(" or ");
+  const messageField = s.responseMessageField || "statusDetail";
+  parts.push(
+    `HTTP 200. Success is \`statusCode\` ${codes} — nothing else. The human-readable message is in ` +
+      `\`${messageField}\`.\n`
+  );
   parts.push(json(s.sampleResponse) + "\n");
 
   if (s.responseFields?.length) {
     parts.push(`### Response fields\n`);
     parts.push(responseTable(s.responseFields) + "\n");
+  }
+
+  if (s.responseHandling?.length) {
+    parts.push(`### Reading the response\n`);
+    parts.push(
+      `The request is half the integration. This is what the answer means and what to do with it.\n`
+    );
+    parts.push(s.responseHandling.map((h) => `- ${h}`).join("\n") + "\n");
+    parts.push(
+      `Check a real response against this contract with ` +
+        `\`node tools/mspace.mjs response ${s.id} '<the body you got>'\`.\n`
+    );
   }
 
   if (s.statusCodes?.length) {
@@ -313,6 +329,10 @@ function callbackSection(c) {
       `| **Full guide** | [${c.reference.replace("references/", "")}](${c.reference.replace("references/", "")}) |`,
     ].join("\n") + "\n"
   );
+
+  if (c.payloadPublished === false) {
+    parts.push(`> **mSpace publishes no payload specification for this URL.** ${c.payloadNote}\n`);
+  }
 
   parts.push(`### Payload fields\n`);
   parts.push(parameterTable(c.fields, { label: "Field", required: "Always sent" }) + "\n");

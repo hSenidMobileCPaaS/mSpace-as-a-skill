@@ -28,11 +28,14 @@ import {
   allEntries,
   buildPayload,
   catalog,
+  coerceValues,
   diagnose,
   findEntry,
   lookupStatusCode,
   readReference,
+  readResponse,
   search,
+  successCodesFor,
   toCurl,
   urlFor,
   validatePayload,
@@ -147,13 +150,18 @@ function cmdShow() {
     }
     if (d.movesMoney) console.log(`  ${red("⚠  This call moves real money.")}`);
 
+    if (d.payloadPublished === false) console.log(`  ${yellow("!")} ${d.payloadNote}`);
+
     const spec = d.parameters || d.fields || [];
     console.log(`\n  ${bold(d.kind === "service" ? "Request parameters" : "Payload fields")}`);
     for (const p of spec) {
-      const req = p.required ? red("required") : dim("optional");
+      const req = p.required
+        ? red(d.kind === "service" ? "required" : "always sent")
+        : dim("optional");
       const en = p.enum ? dim(`  [${p.enum.join(" | ")}]`) : "";
       console.log(`    ${cyan(p.name.padEnd(24))} ${p.type.padEnd(10)} ${req}${en}`);
       console.log(`      ${dim(p.description)}`);
+      if (p.perRequest) console.log(`      ${yellow("!")} ${p.perRequest.note}`);
     }
 
     if (d.responseFields) {
@@ -161,6 +169,14 @@ function cmdShow() {
       for (const f of d.responseFields) {
         console.log(`    ${cyan(f.name.padEnd(24))} ${dim(f.description)}`);
       }
+    }
+
+    if (d.kind === "service") {
+      console.log(
+        `\n  ${bold("Success")}  ${green(successCodesFor(d).join(" or "))}` +
+          `   ${dim(`message in ${d.responseMessageField || "statusDetail"}`)}`
+      );
+      for (const h of d.responseHandling || []) console.log(`    ${dim("·")} ${h}`);
     }
 
     const sampleReq = d.sampleRequest || d.samplePayload;
@@ -287,21 +303,31 @@ function cmdCurl() {
     });
   }
 
-  const values = {};
+  // Every argument arrives as text; the catalog decides what it becomes on the
+  // wire. Parsing it as JSON would turn amount=5.00 into 5 and a long
+  // referenceNo into 8.8e+30 — a corrupted body that still looks plausible.
+  const raw = {};
   for (const pair of rest.slice(1)) {
     const idx = pair.indexOf("=");
     if (idx === -1) continue;
-    const key = pair.slice(0, idx);
-    const raw = pair.slice(idx + 1);
-    try {
-      values[key] = JSON.parse(raw);
-    } catch {
-      values[key] = raw;
+    raw[pair.slice(0, idx)] = pair.slice(idx + 1);
+  }
+  const values = coerceValues(entry, raw);
+
+  const payload = buildPayload(entry, values, { perRequest: "fresh" });
+  const validation = validatePayload(entry, payload);
+
+  // Credentials are always placeholders here, so a value typed on the command
+  // line is dropped rather than printed. Say so, or it looks like it was used.
+  for (const secret of ["applicationId", "password"]) {
+    if (raw[secret] !== undefined) {
+      validation.warnings.unshift(
+        `${secret} was ignored — this command never prints a credential. Export MSPACE_${
+          secret === "password" ? "PASSWORD" : "APP_ID"
+        } and let the shell expand it.`
+      );
     }
   }
-
-  const payload = buildPayload(entry, values);
-  const validation = validatePayload(entry, payload);
   const curl = toCurl(entry, payload);
 
   const data = {
@@ -314,6 +340,9 @@ function cmdCurl() {
     payload,
     curl,
     sampleResponse: entry.sampleResponse,
+    successCodes: successCodesFor(entry),
+    responseMessageField: entry.responseMessageField || "statusDetail",
+    responseHandling: entry.responseHandling,
     responseFields: entry.responseFields,
     validation,
     rules: entry.rules,
@@ -330,13 +359,14 @@ function cmdCurl() {
       const en = p.enum ? dim(`  [${p.enum.join(" | ")}]`) : "";
       console.log(`    ${cyan(p.name.padEnd(22))} ${p.type.padEnd(8)} ${req}${en}`);
       console.log(`      ${dim(p.description)}`);
+      if (p.perRequest) console.log(`      ${yellow("!")} ${p.perRequest.note}`);
     }
 
     console.log(`\n  ${bold("Request")}\n`);
     console.log(indent(d.curl, 2));
 
     if (d.sampleResponse) {
-      const success = d.sampleResponse.statusCode || "S1000";
+      const success = d.successCodes.join(" or ");
       console.log(
         `\n  ${bold("Response")}  ${dim(`HTTP 200 — success is statusCode ${success}, nothing else`)}\n`
       );
@@ -347,6 +377,11 @@ function cmdCurl() {
       for (const f of d.responseFields) {
         console.log(`    ${cyan(f.name.padEnd(22))} ${dim(f.description)}`);
       }
+    }
+    if (d.responseHandling?.length) {
+      console.log(`\n  ${bold("Reading the response")}  ${dim(`message field: ${d.responseMessageField}`)}`);
+      d.responseHandling.forEach((h) => console.log(`    ${dim("·")} ${h}`));
+      console.log(`    ${dim(`Check a real one: mspace response ${d.service} '<body>'`)}`);
     }
 
     console.log();
@@ -360,22 +395,70 @@ function cmdCurl() {
   });
 }
 
+/** Read a JSON document from an inline argument, a @file, or stdin. */
+function readJsonArgument(source, label) {
+  let raw = source;
+  if (source === "-") raw = readFileSync(0, "utf8");
+  else if (source.startsWith("@")) raw = readFileSync(source.slice(1), "utf8");
+
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    fail(`${label} is not valid JSON: ${err.message}`);
+  }
+}
+
+/**
+ * Read a real response body against the contract of the call that made it.
+ *
+ * Half of every mSpace integration is what you do with the answer, and it is
+ * the half that has no HTTP status to lean on: 200 means nothing, success is
+ * per endpoint, and one endpoint names its message field differently.
+ */
+function cmdResponse() {
+  const [id, source] = rest;
+  if (!id || !source) fail("usage: mspace response <id> <json|@file|->");
+  const entry = findEntry(id);
+  if (!entry) fail(`Unknown service "${id}".`, { available: allEntries().map((e) => e.id) });
+
+  const body = readJsonArgument(source, "Response");
+  const result = readResponse(entry, body);
+
+  out(result, (d) => {
+    console.log();
+    const verdict = d.ok
+      ? green(`✓ success  ${d.statusCode}`)
+      : red(`✗ failure  ${d.statusCode ?? "no statusCode"}`);
+    console.log(`  ${verdict}  ${dim(`against ${bold(d.service)}`)}`);
+    console.log(`  ${dim(`success for this call: ${d.successCodes.join(" or ")}`)}`);
+    // The platform's own message when there is one; the catalog's meaning of
+    // the code when there is not.
+    if (d.message) console.log(`  ${bold("Message")}  ${d.message}`);
+    else {
+      console.log(`  ${bold("Message")}  ${dim(`absent — this endpoint puts it in "${d.messageField}"`)}`);
+      if (d.description) console.log(`  ${d.description}`);
+    }
+    if (!d.ok && d.description) console.log(`  ${dim(d.description)}`);
+
+    d.problems.forEach((p) => console.log(`\n  ${red("✗")} ${p}`));
+    d.notes.forEach((n) => console.log(`\n  ${yellow("!")} ${n}`));
+
+    if (d.nextSteps.length) {
+      console.log(`\n  ${bold("Next")}`);
+      d.nextSteps.forEach((s) => console.log(`    ${dim("·")} ${s}`));
+    }
+    console.log();
+  });
+  if (!result.ok) process.exitCode = 1;
+}
+
 function cmdValidate() {
   const [id, source] = rest;
   if (!id || !source) fail("usage: mspace validate <id> <json|@file|->");
   const entry = findEntry(id);
   if (!entry) fail(`Unknown service "${id}".`);
 
-  let raw = source;
-  if (source === "-") raw = readFileSync(0, "utf8");
-  else if (source.startsWith("@")) raw = readFileSync(source.slice(1), "utf8");
-
-  let payload;
-  try {
-    payload = JSON.parse(raw);
-  } catch (err) {
-    fail(`Payload is not valid JSON: ${err.message}`);
-  }
+  const payload = readJsonArgument(source, "Payload");
 
   const result = validatePayload(entry, payload);
   out({ service: entry.id, ...result }, (d) => {
@@ -502,14 +585,21 @@ function cmdHelp() {
     curl <id> [key=value ...]                        Runnable request + parameter and
                                                      response definitions
     validate <id> <json|@file|->                     Check a payload against the spec
+    response <id> <json|@file|->                     Read a real response body against
+                                                     the contract of the call
 
     Every endpoint and callback in that form, filled in and explained, is
     references/14-curl-reference.md. Translate the request into the host project's HTTP
     client — that is the integration, in any language.
 
+    Values are typed by the contract, not by how they look: amount, otp, referenceNo,
+    externalTrxId and action are strings on the wire. requestPage is the one integer.
+
   ${bold("DEBUG")}
     code <statusCode>                                Decode a status code
     diagnose "<symptom>"                             Most likely cause and fix
+    response <id> '<the body you got>'               Success or failure, per endpoint,
+                                                     and what to do with it next
 
   ${bold("GUIDANCE")}
     practices [critical|high|medium]                 Security and reliability rules
@@ -526,6 +616,8 @@ function cmdHelp() {
     ${dim("$")} node tools/mspace.mjs curl sms-send destinationAddresses='["tel:94702725777"]' message="Hi"
     ${dim("$")} node tools/mspace.mjs validate sms-send '{"message":"hi","destinationAddresses":"tel:94702725777"}'
     ${dim("$")} node tools/mspace.mjs curl caas-otp-generation externalTrxId=ORD-1001 amount=5.00
+    ${dim("$")} node tools/mspace.mjs response caas-otp-generation '{"statusCode":"P1003"}'
+    ${dim("$")} node tools/mspace.mjs show subscription-notification
     ${dim("$")} node tools/mspace.mjs reference 14-curl-reference
 
   ${dim("Add --json to any command for machine-readable output.")}
@@ -555,6 +647,8 @@ const COMMANDS = {
   build: cmdCurl,
   validate: cmdValidate,
   check: cmdValidate,
+  response: cmdResponse,
+  read: cmdResponse,
   practices: cmdPractices,
   checklist: cmdChecklist,
   reference: cmdReference,

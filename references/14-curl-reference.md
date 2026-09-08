@@ -105,6 +105,7 @@ the safest way to prove that your credentials, your provisioning and your egress
 | [SMS Receive (MO)](#sms-receive-mo) | `POST <your-host>/api/mspace/sms/receive` | SMS configuration — Message Receiving URL |
 | [SMS Delivery Report](#sms-delivery-report) | `POST <your-host>/api/mspace/sms/report` | SMS configuration — Delivery Report URL |
 | [USSD Receive](#ussd-receive) | `POST <your-host>/api/mspace/ussd/receive` | USSD configuration — Connection URL |
+| [Subscription Notification](#subscription-notification) | `POST <your-host>/api/mspace/subscription/notification` | Subscription configuration — Subscription Notification URL |
 | [Charging Notification](#charging-notification) | `POST <your-host>/api/mspace/charging/notification` | CaaS configuration — Charging Notification URL |
 
 ---
@@ -146,9 +147,9 @@ curl -sS -X POST "$MSPACE_SMS_SEND_URL" \
   --max-time 15 \
   -d @- <<REQUEST
 {
+  "version": "1.0",
   "applicationId": "$MSPACE_APP_ID",
   "password": "$MSPACE_PASSWORD",
-  "version": "1.0",
   "message": "Hello",
   "destinationAddresses": [
     "tel:94702725777"
@@ -162,7 +163,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -196,6 +197,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `destinationResponses[].timeStamp` | string | Processed timestamp for this recipient. |
 | `statusCode` | string | The status code for the entire request. S1000 on success. |
 | `statusDetail` | string | Description of the status for the entire request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- Every recipient gets its own entry in destinationResponses[] with its own statusCode. A multi-recipient send can partially succeed while the top-level code is S1000, so branch per entry.
+- Persist requestId against your message record: the delivery report arrives on your Delivery Report URL carrying that same value, and it is the only key that joins the two.
+
+Check a real response against this contract with `node tools/mspace.mjs response sms-send '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -253,9 +263,9 @@ Send a USSD message (a screen) to a mobile phone from your application.
 | `applicationId` | string | **Required** | Identifies the application. A unique identifier generated while provisioning. Only a single value per request. |
 | `password` | string | **Required** | Authenticates the application-originated message against the credentials of the service provider. Encoded, single value. |
 | `message` | string | **Required** | Content of the message sent by the application — the screen text the subscriber sees. |
-| `sessionId` | string | **Required** | Unique number the USSD Gateway assigns to the application for the duration of the session. It is maintained in all the messages throughout a single session, so echo the one you were given rather than generating your own. |
+| `sessionId` | string | **Required** | Unique number the USSD Gateway assigns to the application for the duration of the session. It is maintained in all the messages throughout a single session, so echo the one you were given rather than generating your own. **Echo the sessionId from the inbound USSD callback exactly. A self-generated value has no session behind it and the screen never reaches the subscriber.** |
 | `ussdOperation` | enum | **Required** | The USSD operation. An application assigns mt-init when it initiates a session, mt-cont for any message that comes after an init, and mt-fin when the session ends in a final message. mo-init and mo-cont are assigned by the platform for messages originated by the subscriber. One of `mo-init`, `mo-cont`, `mt-init`, `mt-cont`, `mt-fin`. |
-| `destinationAddress` | string | **Required** | Destination address, which should be a telephone number (tel: for MSISDN). May be a masked number depending on the type of application. |
+| `destinationAddress` | string | **Required** | Destination address, which should be a telephone number (tel: for MSISDN). May be a masked number depending on the type of application. **The sourceAddress from the inbound USSD callback, unchanged — masked or not.** |
 | `encoding` | enum | Optional | Encoding scheme used in the message. 440 = plain ASCII characters. One of `440`. |
 
 ### Request
@@ -266,9 +276,9 @@ curl -sS -X POST "$MSPACE_USSD_SEND_URL" \
   --max-time 15 \
   -d @- <<REQUEST
 {
+  "version": "1.0",
   "applicationId": "$MSPACE_APP_ID",
   "password": "$MSPACE_PASSWORD",
-  "version": "1.0",
   "message": "1. Press One\n2. Press two\n3. Press three\n4. Exit",
   "sessionId": "1330929317043",
   "ussdOperation": "mt-cont",
@@ -280,7 +290,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -301,6 +311,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `timeStamp` | string | Processed timestamp. |
 | `statusCode` | string | The status code for the entire request. S1000 on success. |
 | `statusDetail` | string | Description of the status for the entire request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- S1000 means the screen was accepted for delivery, not that the subscriber answered. The answer arrives as a fresh mo-cont callback on your USSD Connection URL carrying the same sessionId.
+- Nothing in this response closes the session. Only sending ussdOperation mt-fin does.
+
+Check a real response against this contract with `node tools/mspace.mjs response ussd-send '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -373,7 +392,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -392,6 +411,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `statusCode` | string | The status code for the entire request. |
 | `statusDetail` | string | Description of the status for the entire request. |
 | `subscriptionStatus` | string | Status of the subscription, for example REGISTERED or UNREGISTERED. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- Read subscriptionStatus, not only statusCode. S1000 with INITIAL or REG_PENDING means the opt-in has not completed, so do not unlock a paid feature on the status code alone.
+- Mirror the value locally. Every later change arrives on your Subscription Notification URL, not from this call.
+
+Check a real response against this contract with `node tools/mspace.mjs response subscription-register '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -452,7 +480,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -471,6 +499,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `statusCode` | string | The status code for the entire request. |
 | `statusDetail` | string | Description of the status for the entire request. |
 | `subscriptionStatus` | string | Status of the subscription, for example REGISTERED or UNREGISTERED. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- Expect subscriptionStatus UNREGISTERED. S1000 with a statusDetail of "not registered" means the subscriber was already out — that is the desired end state, not a failure.
+- Stop charging and messaging that subscriber as soon as this returns, without waiting for a notification.
+
+Check a real response against this contract with `node tools/mspace.mjs response subscription-unregister '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -528,7 +565,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -547,6 +584,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `statusCode` | string | The status code for the entire request. |
 | `statusDetail` | string | Description of the status for the entire request. |
 | `subscriptionStatus` | string | Status of the subscription: INITIAL, REG_PENDING, TRIAL, REGISTERED, UNREGISTERED or TEMPORARY_BLOCKED. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- subscriptionStatus has six values. REGISTERED and TRIAL are live; INITIAL, REG_PENDING and TEMPORARY_BLOCKED are subscribers in trouble rather than absent ones; only UNREGISTERED is gone.
+- This is a reconciliation call, not a per-request gate. Serve requests from your local mirror and refresh it from here.
+
+Check a real response against this contract with `node tools/mspace.mjs response subscription-status '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -601,7 +647,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -620,6 +666,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `version` | string | API version. |
 | `statusCode` | string | The status code for the entire request. |
 | `statusDetail` | string | Description of the status for the entire request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- baseSize is a STRING. Parse it before comparing or doing arithmetic — "0" is truthy in most languages.
+- S1000 with a baseSize of "0" is a successful call against an empty base, not an error.
+
+Check a real response against this contract with `node tools/mspace.mjs response subscription-query-base '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -681,7 +736,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -717,6 +772,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `destinationResponses[].statusDetail` | string | Description of the status for this subscriber. |
 | `statusCode` | string | The status code for the entire request. |
 | `statusDetail` | string | Description of the status for the entire request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- destinationResponses[] carries one entry per requested subscriber, each with its own statusCode. One unknown subscriber does not fail the request.
+- lastChargedAmount is a string with the currency inside it ("30.00 LKR"). Split it before doing arithmetic.
+
+Check a real response against this contract with `node tools/mspace.mjs response subscription-charging-info '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -779,7 +843,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` or `S1001` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -812,6 +876,16 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `subscribers[].lastChargedDate` | string | The successful last charged date of the subscriber, in the format YYYY-MM-DD hh:mm:ss. |
 | `subscribers[].lastChargedAmount` | string | The successful last charged amount for the subscriber with the currency code. |
 
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- S1001 is a SUCCESS: the request worked and matched nobody. Stop paging and do not raise an error.
+- Page while moreDataAvailable is true, requesting nextPageNumber each time. nextPageNumber is -1 when there is no next page.
+- The published sample shows subscribers as a single object. Normalise it to an array before iterating, so one subscriber and many do not take different code paths.
+
+Check a real response against this contract with `node tools/mspace.mjs response subscription-list '<the body you got>'`.
+
 ### Status codes for this endpoint
 
 | Code | Class | Meaning |
@@ -820,11 +894,11 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `S1001` | success | No Subscribers Found. → The request succeeded and matched nobody. Treat it as success and stop paging. **This is the documented success outcome for this call.** |
 | `E1100` | transient | System Experienced an Unexpected Error. |
 | `E1102` | configuration | Service Provider Is Not In Active Status. |
-| `E1103` | client | Request Parameters are Invalid. Refer the API documentation. |
+| `E1103` | client | Request Parameters are Invalid. Refer the API documentation. → Check the body against the endpoint parameter table: a string field sent as a JSON number, a missing mandatory field, an array sent as a string, or a subscriber address without tel:. Run node tools/mspace.mjs validate <id> '<body>'. |
 | `E1104` | configuration | Application is Not in Active or Limited Production Status. |
 | `E1105` | transient | TPS Exceeded. → Throttle your own request rate and retry with backoff. |
 | `E1106` | client | Invalid Request Page. Page Number Should Be 1 Or Greater. |
-| `E1107` | client | Request Is Invalid. Refer the API documentation for the mandatory fields and correct format of the request. |
+| `E1107` | client | Request Is Invalid. Refer the API documentation for the mandatory fields and correct format of the request. → A mandatory field is missing or a field is in the wrong format. Compare the body field for field with the endpoint in references/14-curl-reference.md, and run node tools/mspace.mjs validate <id> '<body>'. |
 
 `success` proceed · `pending` accepted but not finished — the outcome arrives later · `configuration` fix the application record, not the code — the integration is down, not one request · `client` fix the payload or the user's input · `user-state` the subscriber is not eligible right now; tell them, do not loop · `transient` retry with capped exponential backoff. Full table: [09-status-codes.md](09-status-codes.md).
 
@@ -852,7 +926,7 @@ Send subscription notifications to users.
 
 | Parameter | Type | | Definition |
 |---|---|---|---|
-| `timeStamp` | string | **Required** | The timestamp, in the format yyMMddHHmm: yy last two digits of the year (00-99), MM month (01-12), dd day (01-31), HH hour (00-23), mm minute (00-59). |
+| `timeStamp` | string | **Required** | The timestamp of the notification. The documentation describes the format in prose as yyMMddHHmm (10 digits) but publishes a 14-digit sample, 20120113082110, which is yyyyMMddHHmmss — and every other timestamp on the platform, including the delivery report callback, is 14 digits. Send yyyyMMddHHmmss to match the platform's own wire sample, and parse inbound timestamps on length so that both forms are accepted. **Generate at send time. Never copy the sample value into a request.** |
 | `version` | string | **Required** | API version, numbered 1.0, 2.0 and so on. |
 | `applicationId` | string | **Required** | Identifies the application. A unique identifier generated while provisioning. Only a single value per request. |
 | `password` | string | **Required** | Authenticates the application-originated message against the credentials of the service provider. Encoded, single value. |
@@ -868,10 +942,10 @@ curl -sS -X POST "$MSPACE_SUBSCRIPTION_NOTIFY_URL" \
   --max-time 15 \
   -d @- <<REQUEST
 {
-  "applicationId": "$MSPACE_APP_ID",
-  "password": "$MSPACE_PASSWORD",
   "timeStamp": "20120113082110",
   "version": "1.0",
+  "applicationId": "$MSPACE_APP_ID",
+  "password": "$MSPACE_PASSWORD",
   "subscriberId": "tel:94716177301",
   "frequency": "monthly",
   "status": "REGISTERED"
@@ -881,7 +955,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -896,6 +970,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 |---|---|---|
 | `statusCode` | string | The status code for the entire request. |
 | `statusDetail` | string | Description of the status for the entire request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- S1000 confirms the platform accepted the notification, not that the subscriber saw it.
+- This is the outbound notify service. It is not the Subscription Notification URL — inbound subscription changes arrive there, on the Subscription Notification callback.
+
+Check a real response against this contract with `node tools/mspace.mjs response subscription-notify '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -961,7 +1044,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -980,6 +1063,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `statusCode` | string | The status code for the entire request. When the request is successful, statusCode is S1000. |
 | `referenceNo` | string | Reference key that uniquely identifies the request. Keep it server-side and pass it to OTP Verify. |
 | `statusDetail` | string | The status detail for the entire request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- Persist referenceNo server-side against the sign-up session. OTP Verification needs it, and it must never reach the client or a log.
+- The OTP itself is never in the response. mSpace sends it to the subscriber by SMS.
+
+Check a real response against this contract with `node tools/mspace.mjs response otp-request '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -1019,8 +1111,8 @@ Verify the OTP a subscriber entered. On success the mSpace subscription process 
 |---|---|---|---|
 | `applicationId` | string | **Required** | ID of the application. |
 | `password` | string | **Required** | Password or API key given to uniquely identify the application. |
-| `referenceNo` | string | **Required** | Reference number returned with the OTP Request API. |
-| `otp` | string | **Required** | The one time password to be used for MSISDN verification for the application. |
+| `referenceNo` | string | **Required** | Reference number returned with the OTP Request API. **The referenceNo returned by OTP Request for this sign-up session.** |
+| `otp` | string | **Required** | The one time password to be used for MSISDN verification for the application. **The code the subscriber typed. Never a stored or generated value.** |
 
 ### Request
 
@@ -1040,7 +1132,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -1061,6 +1153,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `subscriptionStatus` | string | Subscription status of the user. |
 | `statusDetail` | string | The status detail for the entire request. |
 | `subscriberId` | string | Masked mobile number of the end consumer. The application has to use this for any subsequent request sent to the platform. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- The returned subscriberId is the identifier to store and send on every later call. With Mobile Number Masking it is a masked value, and it is the only form the platform accepts back.
+- Check subscriptionStatus too: the OTP can verify while the subscription is not REGISTERED.
+
+Check a real response against this contract with `node tools/mspace.mjs response otp-verify '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -1106,7 +1207,7 @@ Start a one-time charge on the subscriber's mobile account. mSpace generates and
 |---|---|---|---|
 | `applicationId` | string | **Required** | Identifies the application. A unique identifier generated while provisioning. Only a single value per request. |
 | `password` | string | **Required** | The API key sent to your registered email address on the platform upon application approval. |
-| `externalTrxId` | string | **Required** | The transaction ID generated by the application to map the request with the response. It is needed to provide information when there are inquiries related to a transaction. Only a single value per request. Persist it BEFORE calling — it is the idempotency key. |
+| `externalTrxId` | string | **Required** | The transaction ID generated by the application to map the request with the response. It is needed to provide information when there are inquiries related to a transaction. Only a single value per request. Persist it BEFORE calling — it is the idempotency key. **Generate a fresh value per charge and persist it BEFORE sending. Reuse it unchanged on every resolution attempt — a retry with a new one can charge a real person twice.** |
 | `subscriberId` | string | **Required** | The MSISDN of the subscriber to be charged, tel:-prefixed. May be a masked number depending on the type of application. Only a single value per request. |
 | `paymentInstrumentName` | enum | **Required** | The name of the payment instrument. Only a single value per request. One of `Mobile Account`. |
 | `amount` | string | **Required** | Amount to be reserved for charging, sent as a string. Only a single value per request. Hold it as a decimal type in your own code. |
@@ -1134,7 +1235,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "P1003"` — nothing else.
+HTTP 200. Success is `statusCode` `P1003` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -1157,6 +1258,16 @@ HTTP 200. Success is `statusCode: "P1003"` — nothing else.
 | `internalTrxId` | string | The transaction ID generated by the service provider which can be used to track the transaction. Persist it — this is what support traces with. |
 | `statusCode` | string | The status of the request. P1003 means the OTP was sent successfully; it is the success code for this call, not S1000. |
 | `statusDetail` | string | Detailed description explaining the status of the entire request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- Success here is P1003, and it means an OTP was sent. Nothing is charged yet.
+- Persist requestCorrelator and internalTrxId against your externalTrxId before prompting for the OTP. requestCorrelator is what goes to OTP Verification as referenceNo — sending your own externalTrxId there fails with E1855.
+- A timeout is not a failure. Never re-send with a new externalTrxId; settle an unknown outcome from the charging notification.
+
+Check a real response against this contract with `node tools/mspace.mjs response caas-otp-generation '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -1216,8 +1327,8 @@ Verify the OTP the subscriber entered. On successful verification the one-time c
 |---|---|---|---|
 | `applicationId` | string | **Required** | Identifies the application. A unique identifier generated while provisioning. Only a single value per request. |
 | `password` | string | **Required** | The API key sent to your registered email address on the platform upon application approval. |
-| `referenceNo` | string | **Required** | The value returned for requestCorrelator in the response of the CaaS OTP generation request. It is the reference of the transaction. |
-| `otp` | string | **Required** | The OTP entered by the subscriber on the developer application. |
+| `referenceNo` | string | **Required** | The value returned for requestCorrelator in the response of the CaaS OTP generation request. It is the reference of the transaction. **The requestCorrelator from the OTP generation response, NOT your externalTrxId — that gives E1855.** |
+| `otp` | string | **Required** | The OTP entered by the subscriber on the developer application. **The code the subscriber typed. Never a stored or generated value.** |
 | `sourceAddress` | string | **Required** | The MSISDN that requested the OTP, tel:-prefixed. |
 
 ### Request
@@ -1239,7 +1350,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDescription`.
 
 ```json
 {
@@ -1256,6 +1367,15 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `statusCode` | string | The status of the request. S1000 means it was successfully processed. |
 | `statusDescription` | string | Human-readable description of the outcome. Note the field is statusDescription here, not statusDetail. |
 | `status` | boolean | true if the OTP was valid and charging proceeded; false otherwise. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- The message is in statusDescription, not statusDetail, and there is a boolean status alongside it. A shared parser that only reads statusDetail loses the message on the one call that moved money.
+- S1000 means the debit was accepted. The charging notification on your Charging Notification URL is what finally settles it — reconcile there before granting anything irreversible.
+
+Check a real response against this contract with `node tools/mspace.mjs response caas-otp-verify '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -1325,7 +1445,7 @@ REQUEST
 
 ### Response
 
-HTTP 200. Success is `statusCode: "S1000"` — nothing else.
+HTTP 200. Success is `statusCode` `S1000` — nothing else. The human-readable message is in `statusDetail`.
 
 ```json
 {
@@ -1352,6 +1472,16 @@ HTTP 200. Success is `statusCode: "S1000"` — nothing else.
 | `timestamp` | string | System date and time of the successful or failed transaction. Note the lower-case s. |
 | `statusCode` | string | The status code for the request. |
 | `statusDetail` | string | The status detail for the request. |
+
+### Reading the response
+
+The request is half the integration. This is what the answer means and what to do with it.
+
+- latitude and longitude are strings and are absent on every failure. Check for them rather than assuming they exist.
+- This response uses messageID (capital D) and timestamp (lower-case s), where every other service cases them differently.
+- subscriberState true means the handset was reachable when the request was made.
+
+Check a real response against this contract with `node tools/mspace.mjs response lbs-request '<the body you got>'`.
 
 ### Status codes for this endpoint
 
@@ -1670,6 +1800,82 @@ PAYLOAD
 
 - The response body is only an acknowledgement. The screen the subscriber sees comes from a separate POST /ussd/send.
 - Acknowledge immediately — USSD sessions time out in seconds — then build the next screen out of band.
+
+---
+
+## Subscription Notification
+
+mSpace tells your application that a subscriber registered or unregistered — including the changes you did not initiate: a subscriber texting STOP, an operator-side removal, or a billing failure.
+
+| | |
+|---|---|
+| **Direction** | mSpace → you. There is nothing to call. |
+| **Your route** | `POST <your-host>/api/mspace/subscription/notification` (the path is yours; register it on the application record) |
+| **Configured in** | Subscription configuration — Subscription Notification URL |
+| **Deduplicate on** | `subscriberId + status + timeStamp` |
+| **Full guide** | [08-callbacks.md](08-callbacks.md) |
+
+> **mSpace publishes no payload specification for this URL.** The fields below are the vocabulary the documented POST /subscription/notify service defines, which is what the platform sends. Accept them, log the raw body on the first delivery in Limited Production, and widen to whatever actually arrives — do not invent fields, and do not hard-fail on one that is missing.
+
+### Payload fields
+
+| Field | Type | | Definition |
+|---|---|---|---|
+| `subscriberId` | string | **Always sent** | The subscriber whose subscription changed, tel:-prefixed and masked if the application has Mobile Number Masking. Store it exactly as received. |
+| `status` | string | **Always sent** | The new subscription status: REGISTERED or UNREGISTERED, and possibly any of the six values Subscriber Status returns. Treat an unrecognised value as a state you do not know rather than as absence. |
+| `timeStamp` | string | Optional | When the change happened. Published samples are 14 digits (yyyyMMddHHmmss); parse on length so a 10-digit value is also accepted. Part of the dedupe key. |
+| `version` | string | Optional | API version, when the platform sends one. |
+| `applicationId` | string | Optional | Your application identifier. Verify it matches yours when it is present, but do not reject a payload for its absence — the inbound payload is not separately specified. |
+| `frequency` | string | Optional | The subscription frequency the notification relates to: daily, weekly, monthly or yearly. |
+
+### What arrives
+
+```json
+{
+  "timeStamp": "20260908093000",
+  "version": "1.0",
+  "applicationId": "APP_999999",
+  "subscriberId": "tel:94716177301",
+  "frequency": "monthly",
+  "status": "REGISTERED"
+}
+```
+
+### What you must respond
+
+HTTP 200, immediately, before doing any work:
+
+```json
+{
+  "statusCode": "S1000",
+  "statusDetail": "Success"
+}
+```
+
+### Replay it against your own handler
+
+```bash
+curl -sS -X POST "http://localhost:3000/api/mspace/subscription/notification" \
+  -H 'Content-Type: application/json' \
+  -d @- <<'PAYLOAD'
+{
+  "timeStamp": "20260908093000",
+  "version": "1.0",
+  "applicationId": "APP_999999",
+  "subscriberId": "tel:94716177301",
+  "frequency": "monthly",
+  "status": "REGISTERED"
+}
+PAYLOAD
+```
+
+### Rules
+
+- This is the authoritative source of subscription state. A subscriber can leave without ever touching your application, and this is the only place you learn it.
+- Never treat it as authorisation on its own. Mirror it into your own store and gate features on your store, not on a callback body.
+- Deduplicate on subscriberId + status + timeStamp — the same change can be delivered more than once.
+- If it is down, POST /subscription/getSubscriberList is the documented catch-up mechanism. Page it rather than losing the changes.
+- Do not confuse it with POST /subscription/notify, the outbound service that sends a notification to a subscriber. Same field vocabulary, opposite direction.
 
 ---
 

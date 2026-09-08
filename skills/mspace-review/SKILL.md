@@ -27,6 +27,13 @@ with `file:line`, most severe first. Do not report style opinions — only these
 
 - Only `statusDetail` read on the CaaS OTP verification response, which returns
   `statusDescription` and a boolean `status`.
+- **A string field serialised as a JSON number.** `amount`, `otp`, `referenceNo`, `externalTrxId`,
+  `action`, `encoding` and `deliveryStatusRequest` are all strings on the wire; `requestPage` is
+  the only integer. Look for the value's *type at the call site*, not the literal in the sample:
+  a `Decimal`/`BigDecimal`/`number` amount, an `int` OTP, or a numeric ID reaches the encoder as a
+  number and goes out as `5` instead of `"5.00"`, `12345` instead of `"012345"`, or `8.8e+30`
+  instead of a 31-digit `referenceNo`. The platform answers `E1103`/`E1107`/`E1312` and the code
+  looks right. Check a captured body with `node tools/mspace.mjs validate <id> '<body>'`.
 - `destinationAddresses` passed as a string rather than an array.
 - `version` omitted on SMS Send or USSD Send, where it is mandatory.
 - Subscription status treated as two-valued. There are six: `INITIAL`, `REG_PENDING`, `TRIAL`,
@@ -45,6 +52,11 @@ with `file:line`, most severe first. Do not report style opinions — only these
   notification.
 - Callback handler that trusts the body, or has no schema validation.
 - A callback returning non-200 on a malformed payload, which just triggers redelivery.
+- A subscription notification handler that hard-fails on a missing `applicationId` or `timeStamp`.
+  mSpace publishes no payload for that URL, so a strict schema silently drops real subscription
+  changes — accept `subscriberId` and `status`, verify `applicationId` only when present.
+- No subscription notification handler at all, or subscription state never mirrored from it. It is
+  the only place a change you did not initiate shows up.
 - `tel:all` reachable from an ordinary code path.
 - Secrets, OTPs, `referenceNo`, `requestCorrelator` or unmasked `subscriberId` in logs.
 

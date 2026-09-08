@@ -201,6 +201,7 @@ Return the number of subscribers currently registered to the application.
 | `search "<query>"` | Which service does the thing I want? |
 | `curl <id> [k=v]` | **Give me the call** — a runnable request, with the parameters and the response defined. |
 | `validate <id> '<json>'` | Is this payload correct? |
+| `response <id> '<json>'` | **This is what came back** — did it succeed, and what do I do with it? |
 | `code <statusCode>` | What does this code mean, and what do I do? |
 | `diagnose "<symptom>"` | Why is this not working? |
 | `practices [severity]` | What must I not get wrong? |
@@ -226,6 +227,24 @@ $ node tools/mspace.mjs validate sms-send '{"message":"hi","destinationAddresses
       mSpace integration bug.
 ```
 
+It reads the answer with the same contract in hand — success is per endpoint, and the one call
+that moves money names its message field differently:
+
+```bash
+$ node tools/mspace.mjs response caas-otp-verify '{"statusCode":"S1000","statusDetail":"…","status":true}'
+
+  ✓ success  S1000  against caas-otp-verify
+  success for this call: S1000
+  Message  absent — this endpoint puts it in "statusDescription"
+
+  ! The message is in "statusDetail" here, but this endpoint documents "statusDescription".
+    Read both, or a shared parser loses the message on one of them.
+
+  Next
+    · S1000 means the debit was accepted. The charging notification on your Charging
+      Notification URL is what finally settles it.
+```
+
 And it tells you which code means success on which call:
 
 ```bash
@@ -244,9 +263,9 @@ $ node tools/mspace.mjs code P1003
 ### Every endpoint as curl — the path for any language
 
 No SDK, no code generation, no Node: [references/14-curl-reference.md](references/14-curl-reference.md)
-writes out all 14 endpoints and all 4 published callbacks at the wire — the request, every
-parameter defined, the response, every response field explained, and the status codes that endpoint
-can return.
+writes out all 14 endpoints and all 5 provisioned callbacks at the wire — the request, every
+parameter defined, the response, every response field explained, what to do with the body that
+comes back, and the status codes that endpoint can return.
 
 ```bash
 curl -sS -X POST "$MSPACE_CAAS_DEBIT_URL" \

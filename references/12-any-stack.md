@@ -231,26 +231,36 @@ not against intent.
 2. Calling a service whose URL variable is unset raises a local error naming the variable — no
    request leaves the process.
 3. Exactly one function produces a `tel:` address; a grep for `"tel:"` finds it and nothing else.
-4. Success is decided by `statusCode`, never by the HTTP status.
-5. The success set is per service: `P1003` on CaaS OTP generation and `S1001` on Subscriber List
+4. Every field mSpace types as a string is a string when the body is serialised — `amount`, `otp`,
+   `referenceNo`, `externalTrxId`, `action`, `encoding`, `deliveryStatusRequest`. `requestPage` is
+   the only integer, `applicationMetaData` the only object. Assert this against a captured body,
+   not against the types in your own code: a statically-typed decimal or a numeric ID reaches the
+   encoder as a number and the corruption is invisible until the platform rejects it.
+5. Success is decided by `statusCode`, never by the HTTP status.
+6. The success set is per service: `P1003` on CaaS OTP generation and `S1001` on Subscriber List
    both return successfully.
-6. The response reader falls back to `statusDescription` when `statusDetail` is absent.
-7. Every outbound call has an explicit timeout.
-8. Retries cover transport errors and transient codes only, with backoff — and the charging path
-   has no automatic retry at all.
-9. `externalTrxId` is generated and persisted **before** the OTP generation call, and reused
-   unchanged on any resolution attempt; `requestCorrelator` and `internalTrxId` are persisted from
-   the response.
-10. All five callback routes return `{"statusCode":"S1000","statusDetail":"Success"}` with HTTP
+7. The response reader falls back to `statusDescription` when `statusDetail` is absent.
+8. Per-entry outcomes are read, not just the envelope: `destinationResponses[]` on SMS Send and
+   Subscriber Charging Info carries a `statusCode` per recipient underneath a top-level `S1000`.
+9. Every outbound call has an explicit timeout.
+10. Retries cover transport errors and transient codes only, with backoff — and the charging path
+    has no automatic retry at all.
+11. `externalTrxId` is generated and persisted **before** the OTP generation call, and reused
+    unchanged on any resolution attempt; `requestCorrelator` and `internalTrxId` are persisted from
+    the response.
+12. All five callback routes return `{"statusCode":"S1000","statusDetail":"Success"}` with HTTP
     200 for valid, malformed, wrong-application and duplicate payloads alike.
-11. Callback work happens after the response, through the stack's real background mechanism.
-12. The USSD session store is shared across instances and expires entries.
-13. Logs contain `requestId` / `sessionId` / `externalTrxId` / `internalTrxId` / `statusCode`, and
+13. The subscription notification handler tolerates a missing `applicationId` or `timeStamp` —
+    mSpace publishes no payload for that URL, and rejecting a delivery loses a real subscription
+    change.
+14. Callback work happens after the response, through the stack's real background mechanism.
+15. The USSD session store is shared across instances and expires entries.
+16. Logs contain `requestId` / `sessionId` / `externalTrxId` / `internalTrxId` / `statusCode`, and
     never a password, an OTP, a `referenceNo`, a `requestCorrelator`, or an unmasked subscriber
     address.
-14. TLS verification is on, with the intermediate CA supplied if the handshake needs it.
+17. TLS verification is on, with the intermediate CA supplied if the handshake needs it.
 
-Verify 1–9 by reading the code; verify 10–12 with
+Verify 1–11 by reading the code; verify 12–15 with
 [scripts/test-callbacks.sh](../scripts/test-callbacks.sh), which is plain curl and works against a
 handler in any language. Verify the whole outbound path with
 [scripts/smoke-test.sh](../scripts/smoke-test.sh) (or `smoke-test.ps1`), or against the local

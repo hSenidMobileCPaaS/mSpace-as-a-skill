@@ -1,6 +1,6 @@
 {
   "$schema": "./mspace-api.schema.json",
-  "catalogVersion": "1.0.0",
+  "catalogVersion": "1.1.0",
   "source": "https://mspace.lk/API_Documentation/mobitel_tap_api.html",
   "platform": {
     "name": "mSpace",
@@ -274,6 +274,14 @@
         "statusCode": "S1000",
         "statusDetail": "Success."
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "Every recipient gets its own entry in destinationResponses[] with its own statusCode. A multi-recipient send can partially succeed while the top-level code is S1000, so branch per entry.",
+        "Persist requestId against your message record: the delivery report arrives on your Delivery Report URL carrying that same value, and it is the only key that joins the two."
+      ],
       "statusCodes": [
         "S1000",
         "E1303",
@@ -348,7 +356,11 @@
           "name": "sessionId",
           "type": "string",
           "required": true,
-          "description": "Unique number the USSD Gateway assigns to the application for the duration of the session. It is maintained in all the messages throughout a single session, so echo the one you were given rather than generating your own."
+          "description": "Unique number the USSD Gateway assigns to the application for the duration of the session. It is maintained in all the messages throughout a single session, so echo the one you were given rather than generating your own.",
+          "perRequest": {
+            "kind": "echo",
+            "note": "Echo the sessionId from the inbound USSD callback exactly. A self-generated value has no session behind it and the screen never reaches the subscriber."
+          }
         },
         {
           "name": "ussdOperation",
@@ -367,7 +379,11 @@
           "name": "destinationAddress",
           "type": "string",
           "required": true,
-          "description": "Destination address, which should be a telephone number (tel: for MSISDN). May be a masked number depending on the type of application."
+          "description": "Destination address, which should be a telephone number (tel: for MSISDN). May be a masked number depending on the type of application.",
+          "perRequest": {
+            "kind": "echo",
+            "note": "The sourceAddress from the inbound USSD callback, unchanged — masked or not."
+          }
         },
         {
           "name": "encoding",
@@ -423,6 +439,14 @@
         "statusCode": "S1000",
         "statusDetail": "Success."
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "S1000 means the screen was accepted for delivery, not that the subscriber answered. The answer arrives as a fresh mo-cont callback on your USSD Connection URL carrying the same sessionId.",
+        "Nothing in this response closes the session. Only sending ussdOperation mt-fin does."
+      ],
       "statusCodes": [
         "S1000",
         "E1303",
@@ -530,6 +554,14 @@
         "statusDetail": "Request was successfully processed",
         "subscriptionStatus": "REGISTERED"
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "Read subscriptionStatus, not only statusCode. S1000 with INITIAL or REG_PENDING means the opt-in has not completed, so do not unlock a paid feature on the status code alone.",
+        "Mirror the value locally. Every later change arrives on your Subscription Notification URL, not from this call."
+      ],
       "statusCodes": [
         "S1000"
       ],
@@ -622,6 +654,14 @@
         "statusDetail": "not registered",
         "subscriptionStatus": "UNREGISTERED"
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "Expect subscriptionStatus UNREGISTERED. S1000 with a statusDetail of \"not registered\" means the subscriber was already out — that is the desired end state, not a failure.",
+        "Stop charging and messaging that subscriber as soon as this returns, without waiting for a notification."
+      ],
       "statusCodes": [
         "S1000"
       ],
@@ -699,6 +739,14 @@
         "statusDetail": "Request was successfully processed",
         "subscriptionStatus": "REGISTERED"
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "subscriptionStatus has six values. REGISTERED and TRIAL are live; INITIAL, REG_PENDING and TEMPORARY_BLOCKED are subscribers in trouble rather than absent ones; only UNREGISTERED is gone.",
+        "This is a reconciliation call, not a per-request gate. Serve requests from your local mirror and refresh it from here."
+      ],
       "statusCodes": [
         "S1000"
       ],
@@ -769,6 +817,14 @@
         "statusCode": "S1000",
         "statusDetail": "Success."
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "baseSize is a STRING. Parse it before comparing or doing arithmetic — \"0\" is truthy in most languages.",
+        "S1000 with a baseSize of \"0\" is a successful call against an empty base, not an error."
+      ],
       "statusCodes": [
         "S1000"
       ],
@@ -897,6 +953,14 @@
         "statusCode": "S1000",
         "statusDetail": "Success."
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "destinationResponses[] carries one entry per requested subscriber, each with its own statusCode. One unknown subscriber does not fail the request.",
+        "lastChargedAmount is a string with the currency inside it (\"30.00 LKR\"). Split it before doing arithmetic."
+      ],
       "statusCodes": [
         "S1000",
         "E1303",
@@ -1027,6 +1091,16 @@
           "lastChargedAmount": "30.00 LKR"
         }
       },
+      "successCodes": [
+        "S1000",
+        "S1001"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "S1001 is a SUCCESS: the request worked and matched nobody. Stop paging and do not raise an error.",
+        "Page while moreDataAvailable is true, requesting nextPageNumber each time. nextPageNumber is -1 when there is no next page.",
+        "The published sample shows subscribers as a single object. Normalise it to an array before iterating, so one subscriber and many do not take different code paths."
+      ],
       "statusCodes": [
         "S1000",
         "S1001",
@@ -1064,7 +1138,11 @@
           "name": "timeStamp",
           "type": "string",
           "required": true,
-          "description": "The timestamp, in the format yyMMddHHmm: yy last two digits of the year (00-99), MM month (01-12), dd day (01-31), HH hour (00-23), mm minute (00-59)."
+          "description": "The timestamp of the notification. The documentation describes the format in prose as yyMMddHHmm (10 digits) but publishes a 14-digit sample, 20120113082110, which is yyyyMMddHHmmss — and every other timestamp on the platform, including the delivery report callback, is 14 digits. Send yyyyMMddHHmmss to match the platform's own wire sample, and parse inbound timestamps on length so that both forms are accepted.",
+          "perRequest": {
+            "kind": "timestamp",
+            "note": "Generate at send time. Never copy the sample value into a request."
+          }
         },
         {
           "name": "version",
@@ -1134,6 +1212,14 @@
         "statusCode": "S1000",
         "statusDetail": "Request was successfully processed"
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "S1000 confirms the platform accepted the notification, not that the subscriber saw it.",
+        "This is the outbound notify service. It is not the Subscription Notification URL — inbound subscription changes arrive there, on the Subscription Notification callback."
+      ],
       "statusCodes": [
         "S1000"
       ],
@@ -1229,6 +1315,14 @@
         "referenceNo": "213561321321613",
         "statusDetail": "Success"
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "Persist referenceNo server-side against the sign-up session. OTP Verification needs it, and it must never reach the client or a log.",
+        "The OTP itself is never in the response. mSpace sends it to the subscriber by SMS."
+      ],
       "statusCodes": [
         "S1000",
         "E1301",
@@ -1274,13 +1368,21 @@
           "name": "referenceNo",
           "type": "string",
           "required": true,
-          "description": "Reference number returned with the OTP Request API."
+          "description": "Reference number returned with the OTP Request API.",
+          "perRequest": {
+            "kind": "echo",
+            "note": "The referenceNo returned by OTP Request for this sign-up session."
+          }
         },
         {
           "name": "otp",
           "type": "string",
           "required": true,
-          "description": "The one time password to be used for MSISDN verification for the application."
+          "description": "The one time password to be used for MSISDN verification for the application.",
+          "perRequest": {
+            "kind": "user",
+            "note": "The code the subscriber typed. Never a stored or generated value."
+          }
         }
       ],
       "responseFields": [
@@ -1323,6 +1425,14 @@
         "statusDetail": "Success",
         "subscriberId": "tel:hu3b84346f63899a32ec742a666503a02a4dffe4f5"
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "The returned subscriberId is the identifier to store and send on every later call. With Mobile Number Masking it is a masked value, and it is the only form the platform accepts back.",
+        "Check subscriptionStatus too: the OTP can verify while the subscription is not REGISTERED."
+      ],
       "statusCodes": [
         "S1000",
         "E1301",
@@ -1375,7 +1485,11 @@
           "name": "externalTrxId",
           "type": "string",
           "required": true,
-          "description": "The transaction ID generated by the application to map the request with the response. It is needed to provide information when there are inquiries related to a transaction. Only a single value per request. Persist it BEFORE calling — it is the idempotency key."
+          "description": "The transaction ID generated by the application to map the request with the response. It is needed to provide information when there are inquiries related to a transaction. Only a single value per request. Persist it BEFORE calling — it is the idempotency key.",
+          "perRequest": {
+            "kind": "trxId",
+            "note": "Generate a fresh value per charge and persist it BEFORE sending. Reuse it unchanged on every resolution attempt — a retry with a new one can charge a real person twice."
+          }
         },
         {
           "name": "subscriberId",
@@ -1460,6 +1574,15 @@
         "internalTrxId": "9110808020001876",
         "statusCode": "P1003"
       },
+      "successCodes": [
+        "P1003"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "Success here is P1003, and it means an OTP was sent. Nothing is charged yet.",
+        "Persist requestCorrelator and internalTrxId against your externalTrxId before prompting for the OTP. requestCorrelator is what goes to OTP Verification as referenceNo — sending your own externalTrxId there fails with E1855.",
+        "A timeout is not a failure. Never re-send with a new externalTrxId; settle an unknown outcome from the charging notification."
+      ],
       "statusCodes": [
         "P1003",
         "E1300",
@@ -1525,13 +1648,21 @@
           "name": "referenceNo",
           "type": "string",
           "required": true,
-          "description": "The value returned for requestCorrelator in the response of the CaaS OTP generation request. It is the reference of the transaction."
+          "description": "The value returned for requestCorrelator in the response of the CaaS OTP generation request. It is the reference of the transaction.",
+          "perRequest": {
+            "kind": "echo",
+            "note": "The requestCorrelator from the OTP generation response, NOT your externalTrxId — that gives E1855."
+          }
         },
         {
           "name": "otp",
           "type": "string",
           "required": true,
-          "description": "The OTP entered by the subscriber on the developer application."
+          "description": "The OTP entered by the subscriber on the developer application.",
+          "perRequest": {
+            "kind": "user",
+            "note": "The code the subscriber typed. Never a stored or generated value."
+          }
         },
         {
           "name": "sourceAddress",
@@ -1569,6 +1700,14 @@
         "statusDescription": "Request was Successfully processed.",
         "status": true
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDescription",
+      "responseHandling": [
+        "The message is in statusDescription, not statusDetail, and there is a boolean status alongside it. A shared parser that only reads statusDetail loses the message on the one call that moved money.",
+        "S1000 means the debit was accepted. The charging notification on your Charging Notification URL is what finally settles it — reconcile there before granting anything irreversible."
+      ],
       "statusCodes": [
         "S1000",
         "E1312",
@@ -1704,6 +1843,15 @@
         "statusCode": "S1000",
         "statusDetail": "Success"
       },
+      "successCodes": [
+        "S1000"
+      ],
+      "responseMessageField": "statusDetail",
+      "responseHandling": [
+        "latitude and longitude are strings and are absent on every failure. Check for them rather than assuming they exist.",
+        "This response uses messageID (capital D) and timestamp (lower-case s), where every other service cases them differently.",
+        "subscriberState true means the handset was reachable when the request was made."
+      ],
       "statusCodes": [
         "S1000",
         "E1303"
@@ -2011,6 +2159,78 @@
       ]
     },
     {
+      "id": "subscription-notification",
+      "aliases": [
+        "subscription notification",
+        "subscription notification url",
+        "sub notification",
+        "subscription callback"
+      ],
+      "category": "subscription",
+      "direction": "inbound",
+      "name": "Subscription Notification",
+      "summary": "mSpace tells your application that a subscriber registered or unregistered — including the changes you did not initiate: a subscriber texting STOP, an operator-side removal, or a billing failure.",
+      "reference": "references/08-callbacks.md",
+      "configuredIn": "Subscription configuration — Subscription Notification URL",
+      "suggestedPath": "/api/mspace/subscription/notification",
+      "dedupeKey": "subscriberId + status + timeStamp",
+      "payloadPublished": false,
+      "payloadNote": "The fields below are the vocabulary the documented POST /subscription/notify service defines, which is what the platform sends. Accept them, log the raw body on the first delivery in Limited Production, and widen to whatever actually arrives — do not invent fields, and do not hard-fail on one that is missing.",
+      "fields": [
+        {
+          "name": "subscriberId",
+          "type": "string",
+          "required": true,
+          "description": "The subscriber whose subscription changed, tel:-prefixed and masked if the application has Mobile Number Masking. Store it exactly as received."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "description": "The new subscription status: REGISTERED or UNREGISTERED, and possibly any of the six values Subscriber Status returns. Treat an unrecognised value as a state you do not know rather than as absence."
+        },
+        {
+          "name": "timeStamp",
+          "type": "string",
+          "required": false,
+          "description": "When the change happened. Published samples are 14 digits (yyyyMMddHHmmss); parse on length so a 10-digit value is also accepted. Part of the dedupe key."
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "required": false,
+          "description": "API version, when the platform sends one."
+        },
+        {
+          "name": "applicationId",
+          "type": "string",
+          "required": false,
+          "description": "Your application identifier. Verify it matches yours when it is present, but do not reject a payload for its absence — the inbound payload is not separately specified."
+        },
+        {
+          "name": "frequency",
+          "type": "string",
+          "required": false,
+          "description": "The subscription frequency the notification relates to: daily, weekly, monthly or yearly."
+        }
+      ],
+      "samplePayload": {
+        "timeStamp": "20260908093000",
+        "version": "1.0",
+        "applicationId": "APP_999999",
+        "subscriberId": "tel:94716177301",
+        "frequency": "monthly",
+        "status": "REGISTERED"
+      },
+      "rules": [
+        "This is the authoritative source of subscription state. A subscriber can leave without ever touching your application, and this is the only place you learn it.",
+        "Never treat it as authorisation on its own. Mirror it into your own store and gate features on your store, not on a callback body.",
+        "Deduplicate on subscriberId + status + timeStamp — the same change can be delivered more than once.",
+        "If it is down, POST /subscription/getSubscriberList is the documented catch-up mechanism. Page it rather than losing the changes.",
+        "Do not confuse it with POST /subscription/notify, the outbound service that sends a notification to a subscriber. Same field vocabulary, opposite direction."
+      ]
+    },
+    {
       "id": "charging-notification",
       "name": "Charging Notification",
       "aliases": [
@@ -2181,7 +2401,8 @@
     },
     "E1103": {
       "class": "client",
-      "description": "Request Parameters are Invalid. Refer the API documentation."
+      "description": "Request Parameters are Invalid. Refer the API documentation.",
+      "fix": "Check the body against the endpoint parameter table: a string field sent as a JSON number, a missing mandatory field, an array sent as a string, or a subscriber address without tel:. Run node tools/mspace.mjs validate <id> '<body>'."
     },
     "E1104": {
       "class": "configuration",
@@ -2198,7 +2419,8 @@
     },
     "E1107": {
       "class": "client",
-      "description": "Request Is Invalid. Refer the API documentation for the mandatory fields and correct format of the request."
+      "description": "Request Is Invalid. Refer the API documentation for the mandatory fields and correct format of the request.",
+      "fix": "A mandatory field is missing or a field is in the wrong format. Compare the body field for field with the endpoint in references/14-curl-reference.md, and run node tools/mspace.mjs validate <id> '<body>'."
     },
     "E1300": {
       "class": "transient",
@@ -2429,6 +2651,13 @@
       "reference": "references/09-status-codes.md"
     },
     {
+      "id": "strings-on-the-wire",
+      "severity": "high",
+      "title": "Numeric-looking fields are strings on the wire",
+      "detail": "mSpace types nearly every field as a string, including amount, otp, referenceNo, externalTrxId, action, encoding and deliveryStatusRequest. requestPage on Subscriber List is the only documented integer and applicationMetaData the only object. A JSON encoder handed a numeric variable ships \"5.00\" as 5, drops the leading zero from an OTP, and reduces a 31-digit referenceNo to 8.8e+30 — the body still reads correctly and the platform answers E1103, E1107 or E1312. Validate a captured body, not the code that builds it: node tools/mspace.mjs validate <id> '<body>'.",
+      "reference": "references/14-curl-reference.md"
+    },
+    {
       "id": "opaque-subscriber-id",
       "severity": "high",
       "title": "Treat subscriberId as opaque",
@@ -2502,7 +2731,7 @@
       "id": "mirror-subscription-state",
       "severity": "medium",
       "title": "Mirror subscription state locally",
-      "detail": "Consume the Subscription Notification URL and keep a local mirror rather than calling getStatus on every request. Subscriber List exists to catch up on notifications you missed.",
+      "detail": "Consume the Subscription Notification URL and keep a local mirror rather than calling getStatus on every request — it is the only place a change you did not initiate (a subscriber texting STOP, an operator removal, a billing failure) shows up. mSpace publishes no payload for that URL, so accept subscriberId and status, tolerate anything missing, and never reject a delivery for a field that is absent. Subscriber List exists to catch up on notifications you missed.",
       "reference": "references/04-subscription.md"
     }
   ]

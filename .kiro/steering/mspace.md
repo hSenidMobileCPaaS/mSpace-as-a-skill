@@ -46,6 +46,10 @@ TypeScript/Node, Python, Java, Go, PHP and C# as worked examples.
    on any resolution attempt. Never retry with a fresh one.
 6. **`S1000` is not the only success code.** CaaS OTP generation succeeds with **`P1003`**, and
    Subscriber List treats **`S1001`** ("No Subscribers Found") as a success.
+7. **Every field is a string on the wire except `requestPage`.** `amount`, `otp`, `referenceNo`,
+   `externalTrxId`, `action`, `encoding` and `deliveryStatusRequest` all look numeric and are all
+   strings. Serialised as JSON numbers they corrupt the body silently — `"5.00"` becomes `5`, an
+   OTP loses its leading zero, a 31-digit `referenceNo` becomes `8.8e+30`.
 
 ---
 
@@ -62,6 +66,7 @@ node tools/mspace.mjs show <id>                    # full contract: params, resp
 node tools/mspace.mjs search "<query>"             # find by intent, e.g. "base size"
 node tools/mspace.mjs curl <id> [key=value ...]    # runnable request + param/response defs
 node tools/mspace.mjs validate <id> '<json>'       # check a payload against the spec
+node tools/mspace.mjs response <id> '<json>'       # read a real response against the contract
 node tools/mspace.mjs code <statusCode>            # decode a status code + the fix
 node tools/mspace.mjs diagnose "<symptom>"         # cause and fix from a symptom
 node tools/mspace.mjs practices [severity]         # security and reliability rules
@@ -208,6 +213,11 @@ thin wrappers per service.** Do not write bespoke HTTP calls per endpoint, in an
 - **CaaS OTP verification returns `statusDescription`, not `statusDetail`**, plus a boolean
   `status`.
 
+Both are recorded per endpoint as `successCodes` and `responseMessageField`, and
+`node tools/mspace.mjs response <id> '<body>'` applies them to a body you actually received —
+including per-recipient failures hiding under a top-level `S1000`, and the values the next call
+needs (`requestCorrelator`, `referenceNo`, `requestId`).
+
 **Addressing** — always `tel:`-prefixed, no `+`, no spaces:
 
 ```
@@ -236,6 +246,9 @@ carries no `tel:` prefix.
   `requestCorrelator` from the generation response, or you get `E1855`.
 - ❌ Retrying a charge with a new `externalTrxId` after a timeout — double charge.
 - ❌ `destinationAddresses: "tel:94…"` — it is always an **array**.
+- ❌ `"amount": 5.00`, `"otp": 123456`, `"action": 1`, `"referenceNo": 8801442233…` — all of these
+  are **strings**. As JSON numbers they lose decimals, leading zeros and precision, and the
+  platform answers `E1103`, `E1107` or `E1312` for a body that reads correctly.
 - ❌ Omitting `version` on SMS Send or USSD Send, where it is mandatory.
 - ❌ Looking for a top-level `messageId` on an SMS send response — the identifiers are per
   recipient, inside `destinationResponses`.

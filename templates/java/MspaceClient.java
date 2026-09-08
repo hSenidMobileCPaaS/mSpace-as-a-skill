@@ -180,9 +180,15 @@ public final class MspaceClient {
   }
 
   private static final DateTimeFormatter NOTIFY_TIMESTAMP =
-      DateTimeFormatter.ofPattern("yyMMddHHmm");
+      DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
-  /** yyMMddHHmm, the documented timestamp format for subscriber notifications. */
+  /**
+   * yyyyMMddHHmmss, the timestamp format for subscriber notifications.
+   *
+   * <p>The documentation describes the format in prose as yyMMddHHmm (10 digits) but publishes a
+   * 14-digit sample, 20120113082110 — and every other timestamp on the platform, the delivery
+   * report callback included, is 14 digits too. Send the form the platform's own wire samples use.
+   */
   public static String formatNotifyTimestamp(ZonedDateTime moment) {
     return moment.withZoneSameInstant(ZoneOffset.UTC).format(NOTIFY_TIMESTAMP);
   }

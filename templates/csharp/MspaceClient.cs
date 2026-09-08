@@ -154,9 +154,16 @@ public sealed class MspaceClient
             : string.Empty;
     }
 
-    /// <summary>yyMMddHHmm, the documented timestamp format for subscriber notifications.</summary>
+    /// <summary>
+    /// yyyyMMddHHmmss, the timestamp format for subscriber notifications.
+    ///
+    /// The documentation describes the format in prose as yyMMddHHmm (10 digits) but
+    /// publishes a 14-digit sample, 20120113082110 — and every other timestamp on the
+    /// platform, the delivery report callback included, is 14 digits too. Send the form
+    /// the platform's own wire samples use.
+    /// </summary>
     public static string FormatNotifyTimestamp(DateTimeOffset moment) =>
-        moment.ToUniversalTime().ToString("yyMMddHHmm", CultureInfo.InvariantCulture);
+        moment.ToUniversalTime().ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 
     /* ── Core ─────────────────────────────────────────────────────────────── */
 

@@ -387,7 +387,7 @@ export function notifySubscriber(input: {
   subscriberId: string;
   frequency: NotificationFrequency;
   status: string;
-  /** "yyMMddHHmm". Defaults to now. */
+  /** "yyyyMMddHHmmss". Defaults to now. */
   timeStamp?: string;
 }): Promise<MspaceBaseResponse> {
   return post<MspaceBaseResponse>(
@@ -403,15 +403,23 @@ export function notifySubscriber(input: {
   );
 }
 
-/** yyMMddHHmm, the documented timestamp format for subscriber notifications. */
+/**
+ * yyyyMMddHHmmss, the timestamp format for subscriber notifications.
+ *
+ * The documentation describes the format in prose as yyMMddHHmm (10 digits) but
+ * publishes a 14-digit sample, 20120113082110 — and every other timestamp on
+ * the platform, the delivery report callback included, is 14 digits too. Send
+ * the form the platform's own wire samples use.
+ */
 export function formatNotifyTimestamp(date: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
+  const p = (n: number, width = 2) => String(n).padStart(width, "0");
   return (
-    p(date.getUTCFullYear() % 100) +
+    p(date.getUTCFullYear(), 4) +
     p(date.getUTCMonth() + 1) +
     p(date.getUTCDate()) +
     p(date.getUTCHours()) +
-    p(date.getUTCMinutes())
+    p(date.getUTCMinutes()) +
+    p(date.getUTCSeconds())
   );
 }
 

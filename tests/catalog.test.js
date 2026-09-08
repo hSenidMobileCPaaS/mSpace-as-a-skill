@@ -8,11 +8,15 @@ import {
   allEntries,
   buildPayload,
   catalog,
+  coerceValue,
+  coerceValues,
   diagnose,
   findEntry,
   lookupStatusCode,
+  readResponse,
   repoRoot,
   search,
+  successCodesFor,
   toCurl,
   urlFor,
   validatePayload,
@@ -67,6 +71,55 @@ test("every outbound service requires applicationId and password", () => {
       assert.equal(p.required, true, `${s.id}.${field} should be required`);
     }
   }
+});
+
+/**
+ * Provisioning defines five callback URLs across four configuration sections,
+ * and every other surface in this repo says so. The catalog carried four, so
+ * the subscription notification — the only place you learn a subscriber left —
+ * was absent from the CLI and from the curl reference that the callbacks skill
+ * promises documents all of them.
+ */
+test("all five provisioned callback URLs are in the catalog", () => {
+  assert.deepEqual(
+    catalog.callbacks.map((c) => c.id),
+    [
+      "sms-mo",
+      "sms-dlr",
+      "ussd-receive",
+      "subscription-notification",
+      "charging-notification",
+    ]
+  );
+
+  const configuredIn = catalog.callbacks.map((c) => c.configuredIn);
+  for (const section of ["SMS", "USSD", "CaaS", "Subscription"]) {
+    assert.ok(
+      configuredIn.some((c) => c.startsWith(section)),
+      `no callback is configured under ${section}`
+    );
+  }
+});
+
+/**
+ * mSpace publishes no payload for the subscription notification URL. Recording
+ * that alongside the fields is what stops a handler from being written as if
+ * the shape were guaranteed.
+ */
+test("the subscription notification is marked as having no published payload", () => {
+  const cb = findEntry("subscription-notification");
+  assert.equal(cb.direction, "inbound");
+  assert.equal(cb.payloadPublished, false);
+  assert.match(cb.payloadNote, /do not invent fields/i);
+  assert.equal(cb.dedupeKey, "subscriberId + status + timeStamp");
+
+  // Only what a handler genuinely needs is promised to be present.
+  const required = cb.fields.filter((f) => f.required).map((f) => f.name);
+  assert.deepEqual(required.sort(), ["status", "subscriberId"]);
+
+  // It is not the outbound notify service, and the rules have to say so.
+  assert.ok(cb.rules.some((r) => r.includes("/subscription/notify")));
+  assert.ok(cb.rules.some((r) => r.includes("getSubscriberList")));
 });
 
 test("every callback declares a dedupe key and a route", () => {
@@ -380,6 +433,282 @@ test("built payloads never contain a literal credential", () => {
   }
 });
 
+/**
+ * The body is the deliverable. An agent translates what this prints into the
+ * host project's HTTP client verbatim, so a field the builder drops is a field
+ * missing from someone's production request.
+ */
+test("a built payload carries every field the documented sample carries", () => {
+  for (const s of catalog.services) {
+    const payload = buildPayload(s, {});
+    for (const name of Object.keys(s.sampleRequest || {})) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(payload, name),
+        `${s.id} builds a body without ${name}, which its own documented sample sends`
+      );
+    }
+    for (const p of s.parameters) {
+      if (!p.required) continue;
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(payload, p.name),
+        `${s.id} builds a body without the required ${p.name}`
+      );
+    }
+  }
+});
+
+/** The declared order is the order mSpace publishes, credentials included. */
+test("a built payload follows the contract's own field order", () => {
+  for (const s of catalog.services) {
+    const built = Object.keys(buildPayload(s, {}));
+    const declared = s.parameters.map((p) => p.name).filter((n) => built.includes(n));
+    assert.deepEqual(built, declared, `${s.id} emits its fields out of contract order`);
+  }
+});
+
+/**
+ * The reference document and the CLI used to build bodies with two separate
+ * functions, and they drifted: the page sent sourceAddress and encoding on an
+ * SMS, the CLI did not. One builder, one body.
+ */
+test("the CLI and the curl reference build the same body", () => {
+  const service = findEntry("sms-send");
+  const doc = readFileSync(join(repoRoot, "references", "14-curl-reference.md"), "utf8");
+  const body = JSON.stringify(buildPayload(service), null, 2);
+  assert.ok(
+    doc.includes(body),
+    "the SMS Send body in 14-curl-reference.md is not what buildPayload produces"
+  );
+});
+
+/* ── Typing: a value that looks numeric is still a string on the wire ────── */
+
+/**
+ * These are the bugs that shipped. Parsing a command-line value as JSON turned
+ * amount=5.00 into 5, action=1 into 1, and a 31-digit referenceNo into
+ * 8.8e+30 — a corrupted body on the call that moves money, and every one of
+ * them still looked plausible in the printed request.
+ */
+test("command-line values are typed by the contract, not by their shape", () => {
+  const charge = findEntry("caas-otp-generation");
+  const values = coerceValues(charge, { amount: "5.00", externalTrxId: "256091232" });
+  assert.equal(values.amount, "5.00", "an amount must not become a JSON number");
+  assert.equal(values.externalTrxId, "256091232");
+
+  const verify = findEntry("caas-otp-verify");
+  const referenceNo = "8801442233146169943053700500040";
+  assert.equal(
+    coerceValues(verify, { referenceNo, otp: "012345" }).referenceNo,
+    referenceNo,
+    "a long referenceNo must survive intact — as a number it loses precision"
+  );
+  assert.equal(coerceValues(verify, { otp: "012345" }).otp, "012345", "leading zero lost");
+
+  // The one documented integer stays an integer, and enums stay strings.
+  assert.equal(coerceValues(findEntry("subscription-list"), { requestPage: "2" }).requestPage, 2);
+  assert.equal(coerceValues(findEntry("subscription-register"), { action: "1" }).action, "1");
+
+  // Arrays accept both JSON and the comma-separated form people type.
+  const sms = findEntry("sms-send");
+  assert.deepEqual(coerceValues(sms, { destinationAddresses: '["tel:94702725777"]' }).destinationAddresses, [
+    "tel:94702725777",
+  ]);
+  assert.deepEqual(
+    coerceValues(sms, { destinationAddresses: "tel:94702725777,tel:94716177301" })
+      .destinationAddresses,
+    ["tel:94702725777", "tel:94716177301"]
+  );
+
+  // An object parameter is real JSON.
+  const otp = findEntry("otp-request");
+  assert.deepEqual(coerceValues(otp, { applicationMetaData: '{"client":"MOBILEAPP"}' }).applicationMetaData, {
+    client: "MOBILEAPP",
+  });
+
+  // An undeclared parameter keeps its text; validation reports it separately.
+  assert.equal(coerceValue(undefined, "123"), "123");
+});
+
+test("validation rejects a string field sent as a JSON number", () => {
+  const result = validatePayload(findEntry("caas-otp-verify"), {
+    applicationId: "APP_000001",
+    password: "x",
+    referenceNo: 8801442233146169943053700500040,
+    otp: 123456,
+    sourceAddress: "tel:94702725777",
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("referenceNo") && e.includes("STRING")));
+  assert.ok(result.errors.some((e) => e.includes("otp") && e.includes("STRING")));
+});
+
+test("validation rejects an amount that is not a plain decimal string", () => {
+  const charge = (amount) =>
+    validatePayload(findEntry("caas-otp-generation"), {
+      applicationId: "APP_000001",
+      password: "x",
+      externalTrxId: "abc",
+      subscriberId: "tel:94702725777",
+      paymentInstrumentName: "Mobile Account",
+      amount,
+      currency: "LKR",
+    });
+
+  assert.equal(charge("LKR 5.00").valid, false);
+  assert.equal(charge(5).valid, false, "an amount must never be a JSON number");
+  assert.equal(charge("5.00").valid, true);
+  assert.ok(charge("5").warnings.some((w) => w.includes("two-decimal")));
+});
+
+test("validation rejects a body that still holds a placeholder", () => {
+  const result = validatePayload(findEntry("subscription-status"), {
+    applicationId: "APP_000001",
+    password: "x",
+    subscriberId: "<subscriberId>",
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("placeholder")));
+});
+
+test("tel:all is rejected anywhere but the SMS destination list", () => {
+  const result = validatePayload(findEntry("subscription-register"), {
+    applicationId: "APP_000001",
+    password: "x",
+    subscriberId: "tel:all",
+    action: "1",
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("tel:all")));
+});
+
+/**
+ * The documentation's prose and its own sample disagree on this one field. The
+ * sample is the wire, so 14 digits is what goes out — and both are accepted so
+ * a caller following the prose is warned rather than blocked.
+ */
+test("the notification timestamp accepts both documented forms", () => {
+  const notify = (timeStamp) =>
+    validatePayload(findEntry("subscription-notify"), {
+      timeStamp,
+      version: "1.0",
+      applicationId: "APP_000001",
+      password: "x",
+      subscriberId: "tel:94716177301",
+      frequency: "monthly",
+      status: "REGISTERED",
+    });
+
+  assert.equal(notify("20120113082110").valid, true);
+  const short = notify("2601130821");
+  assert.equal(short.valid, true);
+  assert.ok(short.warnings.some((w) => w.includes("14 digits")));
+  assert.equal(notify("2026-01-13").valid, false);
+});
+
+test("a generated body carries fresh per-request values, never the sample", () => {
+  const charge = findEntry("caas-otp-generation");
+  const first = buildPayload(charge, {}, { perRequest: "fresh" });
+  const second = buildPayload(charge, {}, { perRequest: "fresh" });
+  assert.notEqual(first.externalTrxId, charge.sampleRequest.externalTrxId);
+  assert.notEqual(first.externalTrxId, second.externalTrxId, "an idempotency key must be unique");
+
+  const notify = buildPayload(findEntry("subscription-notify"), {}, { perRequest: "fresh" });
+  assert.match(notify.timeStamp, /^\d{14}$/);
+  assert.notEqual(notify.timeStamp, "20120113082110");
+
+  // The generated document stays reproducible: no fresh values by default.
+  assert.equal(buildPayload(charge, {}).externalTrxId, charge.sampleRequest.externalTrxId);
+});
+
+/* ── Reading the response ────────────────────────────────────────────────── */
+
+test("every service declares its success codes and its message field", () => {
+  for (const s of catalog.services) {
+    assert.ok(s.successCodes?.length, `${s.id} declares no successCodes`);
+    for (const code of s.successCodes) {
+      assert.ok(catalog.statusCodes[code], `${s.id} claims unknown success code ${code}`);
+      assert.ok(
+        (s.statusCodes || []).includes(code),
+        `${s.id} lists ${code} as a success but not among its status codes`
+      );
+    }
+    assert.ok(
+      s.successCodes.includes(s.sampleResponse.statusCode),
+      `${s.id} publishes a sample response its own success set rejects`
+    );
+    const field = s.responseMessageField;
+    assert.ok(
+      (s.responseFields || []).some((f) => f.name === field),
+      `${s.id} names ${field} as its message field but does not document it`
+    );
+    assert.ok(s.responseHandling?.length, `${s.id} says nothing about reading its response`);
+  }
+});
+
+test("the success set is per endpoint, and the irregular ones are recorded", () => {
+  assert.deepEqual(successCodesFor(findEntry("caas-otp-generation")), ["P1003"]);
+  assert.deepEqual(successCodesFor(findEntry("subscription-list")), ["S1000", "S1001"]);
+  assert.deepEqual(successCodesFor(findEntry("sms-send")), ["S1000"]);
+  assert.equal(findEntry("caas-otp-verify").responseMessageField, "statusDescription");
+});
+
+test("a response is read against the contract of the call that made it", () => {
+  const generation = readResponse(findEntry("caas-otp-generation"), {
+    statusCode: "P1003",
+    statusDetail: "Successfully sent OTP to user.",
+    requestCorrelator: "8801442233146169943053700500040",
+    internalTrxId: "9110808020001876",
+  });
+  assert.equal(generation.ok, true, "P1003 is the success of this call");
+  assert.ok(generation.nextSteps.some((s) => s.includes("referenceNo")));
+
+  // The same code on a different call is a failure.
+  assert.equal(readResponse(findEntry("sms-send"), { statusCode: "P1003" }).ok, false);
+
+  // S1000 is not universal in the other direction either.
+  assert.equal(readResponse(findEntry("caas-otp-generation"), { statusCode: "S1000" }).ok, false);
+  assert.equal(readResponse(findEntry("subscription-list"), { statusCode: "S1001" }).ok, true);
+});
+
+test("reading a response points at the right message field", () => {
+  const verify = readResponse(findEntry("caas-otp-verify"), {
+    statusCode: "S1000",
+    statusDetail: "Request was Successfully processed.",
+    status: true,
+  });
+  assert.equal(verify.message, null, "statusDetail is not this endpoint's message field");
+  assert.ok(verify.notes.some((n) => n.includes("statusDescription")));
+});
+
+test("a per-recipient failure is surfaced under a top-level success", () => {
+  const result = readResponse(findEntry("sms-send"), {
+    statusCode: "S1000",
+    statusDetail: "Success.",
+    destinationResponses: [
+      { address: "tel:94702725777", statusCode: "S1000" },
+      { address: "tel:94716177301", statusCode: "E1317" },
+    ],
+  });
+  assert.equal(result.ok, true);
+  assert.ok(result.problems.some((p) => p.includes("E1317") && p.includes("tel:94716177301")));
+});
+
+test("a failure response carries the fix, not just the code", () => {
+  const result = readResponse(findEntry("subscription-query-base"), {
+    statusCode: "E1303",
+    statusDetail: "IP not allowed",
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.statusClass, "configuration");
+  assert.ok(result.nextSteps.some((s) => /Allowed Host Address/i.test(s)));
+});
+
+test("a body with no envelope is reported as such", () => {
+  const result = readResponse(findEntry("sms-send"), { message: "sent" });
+  assert.equal(result.ok, false);
+  assert.ok(result.problems.some((p) => p.includes("No statusCode")));
+});
+
 test("curl output is a single runnable POST with a JSON body", () => {
   const s = findEntry("subscription-query-base");
   const curl = toCurl(s, buildPayload(s, {}));
@@ -412,6 +741,40 @@ test("diagnose matches symptom signatures", () => {
   assert.equal(diagnose("works locally but fails deployed").matchedOn, "symptom");
   assert.match(diagnose("we double charged a customer").fix, /externalTrxId/);
   assert.match(diagnose("statusDetail is undefined").fix, /statusDescription/);
+});
+
+/**
+ * The two failure modes with no signature before: a body corrupted by JSON
+ * number typing, and a subscription notification that never lands. Both look
+ * like "it just does not work" from the outside.
+ */
+test("diagnose recognises a wrongly typed request body", () => {
+  for (const symptom of [
+    "the request body is not being generated as expected",
+    "E1107 on every call",
+    "the payload is invalid but it looks right",
+  ]) {
+    const d = diagnose(symptom);
+    assert.notEqual(d.matchedOn, "none", `no diagnosis for "${symptom}"`);
+    assert.match(
+      `${d.cause ?? ""}${d.fix ?? ""}${d.action ?? ""}`,
+      /string|validate/i,
+      `"${symptom}" does not lead to the typing or validation check`
+    );
+  }
+});
+
+test("diagnose recognises a missing subscription notification", () => {
+  for (const symptom of [
+    "we never get told when a subscriber unsubscribes",
+    "missed subscription notifications",
+    "subscribers unsubscribe but our state is stale",
+  ]) {
+    const d = diagnose(symptom);
+    assert.equal(d.matchedOn, "symptom", `no signature matched "${symptom}"`);
+    assert.match(d.cause, /Subscription Notification URL/);
+    assert.match(d.fix, /getSubscriberList/);
+  }
 });
 
 test("diagnose degrades to search when nothing matches", () => {

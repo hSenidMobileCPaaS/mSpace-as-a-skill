@@ -167,8 +167,15 @@ def detail_of(data: Mapping[str, Any]) -> str:
 
 
 def format_notify_timestamp(moment: datetime) -> str:
-    """yyMMddHHmm, the documented timestamp format for subscriber notifications."""
-    return moment.astimezone(timezone.utc).strftime("%y%m%d%H%M")
+    """
+    yyyyMMddHHmmss, the timestamp format for subscriber notifications.
+
+    The documentation describes the format in prose as yyMMddHHmm (10 digits)
+    but publishes a 14-digit sample, 20120113082110 — and every other timestamp
+    on the platform, the delivery report callback included, is 14 digits too.
+    Send the form the platform's own wire samples use.
+    """
+    return moment.astimezone(timezone.utc).strftime("%Y%m%d%H%M%S")
 
 
 # ── Core ─────────────────────────────────────────────────────────────────────

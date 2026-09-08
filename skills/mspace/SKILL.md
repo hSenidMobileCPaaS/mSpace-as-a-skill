@@ -37,7 +37,8 @@ invent endpoints for either.
 node tools/mspace.mjs list                          # what exists
 node tools/mspace.mjs show <id>                     # exact contract
 node tools/mspace.mjs curl <id> [key=value ...]     # runnable request + param/response defs
-node tools/mspace.mjs validate <id> '<json>'
+node tools/mspace.mjs validate <id> '<json>'        # check a body before you send it
+node tools/mspace.mjs response <id> '<json>'        # read the body that came back
 node tools/mspace.mjs code <statusCode>
 node tools/mspace.mjs platform                      # base URL, tracks, conventions
 ```
@@ -71,7 +72,7 @@ JSON. The CLI is a documentation reader; the integration itself can be in **any 
 6. **A charge is three exchanges**, not one: OTP generation (`P1003`), OTP verification (the money
    moves), then the charging notification (which settles it).
 
-## The two things agents get wrong
+## The three things agents get wrong
 
 **mSpace returns HTTP 200 for application-level failures.** Branch on `statusCode`.
 
@@ -79,6 +80,13 @@ JSON. The CLI is a documentation reader; the integration itself can be in **any 
 also accepts **`S1001`** ("No Subscribers Found"). And CaaS OTP verification puts its message in
 **`statusDescription`**, not `statusDetail`. A client hard-coded to `S1000` + `statusDetail`
 reports every successful charge request as a failure.
+
+**Numeric-looking fields are strings.** `amount`, `otp`, `referenceNo`, `externalTrxId`, `action`,
+`encoding` and `deliveryStatusRequest` are all typed as strings; `requestPage` is the only
+documented integer. Sent as JSON numbers they corrupt the body silently — `"5.00"` becomes `5`, an
+OTP loses a leading zero, a 31-digit `referenceNo` becomes `8.8e+30` — and the platform answers
+`E1103`/`E1107`/`E1312` for a request that reads correctly. `mspace validate <id> '<body>'` catches
+it; `mspace response <id> '<body>'` reads the answer back against the same contract.
 
 ## Build it in the project's own stack
 

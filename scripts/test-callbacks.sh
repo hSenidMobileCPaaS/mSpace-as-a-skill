@@ -92,6 +92,11 @@ check "Wrong applicationId" /api/mspace/sms/receive \
 check "Missing required fields" /api/mspace/ussd/receive \
   '{"applicationId":"'"$APP_ID"'"}'
 
+# mSpace publishes no payload for the subscription notification URL, so the
+# handler has to tolerate a field being absent rather than reject the delivery.
+check "Subscription without applicationId" /api/mspace/subscription/notification \
+  '{"subscriberId":"tel:94716177301","status":"UNREGISTERED","timeStamp":"20260908093000"}'
+
 check "Oversized message" /api/mspace/sms/receive \
   "{\"version\":\"1.0\",\"applicationId\":\"$APP_ID\",\"sourceAddress\":\"tel:94702725777\",\"message\":\"$(printf 'A%.0s' {1..5000})\",\"requestId\":\"r2\",\"encoding\":\"0\"}"
 
@@ -103,6 +108,12 @@ echo "${DIM}  must process it ONCE. Verify in your logs or database.${NC}"
 DUP='{"timeStamp":"2026-10-02T14:59:00+05:30","version":"1.0","externalTrxId":"dup-test-001","internalTrxId":"999","referenceId":"1","currency":"LKR","TotalAmount":"5.00","paidAmount":"5.00","balanceDue":"0.00","statusCode":"S1000","statusDetail":"Request was Successfully processed, Due amount fully paid."}'
 check "Charging notification (1st)" /api/mspace/charging/notification "$DUP"
 check "Charging notification (2nd)" /api/mspace/charging/notification "$DUP"
+
+# Dedupe key: subscriberId + status + timeStamp. Mirroring this twice must not
+# produce two subscription changes in your store.
+SUB_DUP="{\"timeStamp\":\"20260908093000\",\"version\":\"1.0\",\"applicationId\":\"$APP_ID\",\"subscriberId\":\"tel:94716177301\",\"frequency\":\"monthly\",\"status\":\"UNREGISTERED\"}"
+check "Subscription notification (1st)" /api/mspace/subscription/notification "$SUB_DUP"
+check "Subscription notification (2nd)" /api/mspace/subscription/notification "$SUB_DUP"
 
 echo
 echo "────────────────────────────────────────────────────────"

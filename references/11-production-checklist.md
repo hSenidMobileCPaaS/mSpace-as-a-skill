@@ -39,6 +39,10 @@ provider something real.
       `UNREGISTERED`, `TEMPORARY_BLOCKED` — not just registered/unregistered
 - [ ] All subscriber addresses normalised through one `tel:` helper
 - [ ] `destinationAddresses` is always an array
+- [ ] A **captured** request body has been checked field by field against the contract —
+      `node tools/mspace.mjs validate <id> '<body>'` — not just the code that builds it
+- [ ] `amount`, `otp`, `referenceNo`, `externalTrxId` and `action` serialise as **strings**;
+      `requestPage` is the only integer that goes out
 - [ ] `version` sent on SMS Send and USSD Send, where it is mandatory
 - [ ] `subscriberId` treated as opaque — masking-safe
 - [ ] LBS `requesterId` and `subscriberId` are populated correctly and not swapped
@@ -66,6 +70,11 @@ provider something real.
 - [ ] Duplicate-delivery test exists and passes
 - [ ] The subscription notification handler tolerates fields beyond the documented vocabulary, and
       logged its first real payload
+- [ ] The subscription notification handler also tolerates a **missing** `applicationId` or
+      `timeStamp` — the payload for that URL is not published, and a rejected delivery is a
+      subscription change lost
+- [ ] Subscription state is mirrored locally from that callback, with Subscriber List as the
+      catch-up path, rather than polling `getStatus` per request
 
 ## Charging (if using CaaS)
 

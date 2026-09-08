@@ -85,6 +85,7 @@ project's own HTTP client; that is the integration.
 node tools/mspace.mjs curl subscription-query-base              # the cheapest call to prove setup
 node tools/mspace.mjs curl sms-send message="Hi" \
   destinationAddresses='["tel:94702725777"]'                    # filled in and validated
+node tools/mspace.mjs response sms-send '<the body you got>'    # what the answer means
 node tools/mspace.mjs reference 14-curl-reference               # the whole page
 ```
 
@@ -104,9 +105,12 @@ else. The CLI above needs Node, but it is only a documentation reader.
 1. **HTTP 200 does not mean success** — branch on `statusCode`.
 2. **`S1000` is not the only success** — `P1003` on CaaS OTP generation, `S1001` on Subscriber
    List, and `statusDescription` instead of `statusDetail` on CaaS OTP verification.
-3. **A charge is three exchanges** — OTP generation, OTP verification, then the notification that
+3. **Numeric-looking fields are strings** — `amount`, `otp`, `referenceNo`, `externalTrxId`,
+   `action`. Sent as JSON numbers they corrupt the body silently; `requestPage` is the only
+   integer.
+4. **A charge is three exchanges** — OTP generation, OTP verification, then the notification that
    settles it — and it is idempotent on `externalTrxId`, or you double-charge a real person.
-4. **Credentials live in environment variables**, and mSpace is called from the backend only.
+5. **Credentials live in environment variables**, and mSpace is called from the backend only.
 
 No provisioned application yet? The developer bundle's simulator runs the whole thing locally at
 `http://localhost:10001/`.

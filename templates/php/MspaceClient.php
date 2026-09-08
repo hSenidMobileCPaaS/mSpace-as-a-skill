@@ -135,12 +135,19 @@ final class MspaceClient
         return (string) ($data['statusDetail'] ?? $data['statusDescription'] ?? '');
     }
 
-    /** yyMMddHHmm, the documented timestamp format for subscriber notifications. */
+    /**
+     * yyyyMMddHHmmss, the timestamp format for subscriber notifications.
+     *
+     * The documentation describes the format in prose as yyMMddHHmm (10 digits) but
+     * publishes a 14-digit sample, 20120113082110 — and every other timestamp on the
+     * platform, the delivery report callback included, is 14 digits too. Send the form
+     * the platform's own wire samples use.
+     */
     public static function formatNotifyTimestamp(?DateTimeImmutable $moment = null): string
     {
         $moment ??= new DateTimeImmutable('now', new DateTimeZone('UTC'));
 
-        return $moment->setTimezone(new DateTimeZone('UTC'))->format('ymdHi');
+        return $moment->setTimezone(new DateTimeZone('UTC'))->format('YmdHis');
     }
 
     /* ── Core ─────────────────────────────────────────────────────────────── */

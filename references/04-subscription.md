@@ -363,7 +363,7 @@ This service sends subscription notifications to users.
 
 | Parameter | Description | Mandatory |
 |---|---|---|
-| `timeStamp` | `yyMMddHHmm` — yy last two digits of the year, MM month, dd day, HH hour, mm minute | **Mandatory** |
+| `timeStamp` | Described in prose as `yyMMddHHmm` (10 digits), but the published sample is `20120113082110` — 14 digits, `yyyyMMddHHmmss` — as is every other timestamp on the platform. **Send the 14-digit form** and parse inbound timestamps on length. Generate it at send time; never copy a sample value into a request. | **Mandatory** |
 | `version` | API version | **Mandatory** |
 | `applicationId` | Application ID from provisioning | **Mandatory** |
 | `password` | Password from provisioning | **Mandatory** |

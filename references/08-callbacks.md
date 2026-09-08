@@ -23,6 +23,13 @@ Provisioning defines five URLs, in four different configuration sections:
 > and provisioning separately defines a *Subscription Notification URL*. Write that handler
 > tolerantly: accept those fields, log the raw body on the first delivery in Limited Production,
 > and widen it to whatever actually arrives. Do not invent fields for it.
+>
+> All five are in [`catalog/mspace-api.json`](../catalog/mspace-api.json) and in
+> [14-curl-reference.md](14-curl-reference.md), with this one flagged as having no published
+> payload — `node tools/mspace.mjs show subscription-notification`. Treat only `subscriberId` and
+> `status` as reliably present, and never reject a delivery because `applicationId` or `timeStamp`
+> is missing: the shape is not guaranteed, and a dropped notification is a subscriber your state
+> is now wrong about.
 
 **Subscriber List (`POST /subscription/getSubscriberList`) is the safety net.** Its documented
 purpose is to let you catch up on the subscription notifications you missed receiving — so if

@@ -373,6 +373,8 @@ test("the CLI responds to every documented command", () => {
   assert.doesNotThrow(() => cli("code", "P1003", "--json"));
   assert.doesNotThrow(() => cli("diagnose", "callbacks never arrive", "--json"));
   assert.doesNotThrow(() => cli("curl", "subscription-query-base", "--json"));
+  assert.doesNotThrow(() => cli("response", "subscription-query-base", '{"statusCode":"S1000"}', "--json"));
+  assert.doesNotThrow(() => cli("show", "subscription-notification", "--json"));
   assert.doesNotThrow(() => cli("practices", "--json"));
   assert.doesNotThrow(() => cli("checklist", "--json"));
   assert.doesNotThrow(() => cli("platform", "--json"));
@@ -398,6 +400,55 @@ test("the CLI exits non-zero on an invalid payload", () => {
   assert.throws(
     () => cli("validate", "sms-send", '{"message":"hi","destinationAddresses":"tel:94702725777"}'),
     /Command failed|status/
+  );
+});
+
+/**
+ * A body built from the command line must be the body the contract describes.
+ * These four values are all typed as strings by mSpace and all look numeric,
+ * which is exactly how they used to end up on the wire as JSON numbers.
+ */
+test("the CLI builds a request with the contract's own types", () => {
+  const charge = JSON.parse(
+    cli("curl", "caas-otp-generation", "amount=5.00", "externalTrxId=256091232", "--json")
+  );
+  assert.equal(charge.payload.amount, "5.00");
+  assert.equal(charge.payload.externalTrxId, "256091232");
+  assert.equal(charge.validation.valid, true, charge.validation.errors.join("; "));
+  assert.deepEqual(charge.successCodes, ["P1003"]);
+
+  const verify = JSON.parse(
+    cli(
+      "curl",
+      "caas-otp-verify",
+      "referenceNo=8801442233146169943053700500040",
+      "otp=012345",
+      "--json"
+    )
+  );
+  assert.equal(verify.payload.referenceNo, "8801442233146169943053700500040");
+  assert.equal(verify.payload.otp, "012345");
+
+  const register = JSON.parse(
+    cli("curl", "subscription-register", "action=1", "subscriberId=tel:94716177301", "--json")
+  );
+  assert.equal(register.payload.action, "1");
+
+  // requestPage is the one documented integer, and it stays one.
+  const list = JSON.parse(cli("curl", "subscription-list", "requestPage=2", "--json"));
+  assert.equal(list.payload.requestPage, 2);
+});
+
+test("the CLI reads a response and exits non-zero on a failure", () => {
+  const ok = JSON.parse(
+    cli("response", "caas-otp-generation", '{"statusCode":"P1003"}', "--json")
+  );
+  assert.equal(ok.ok, true, "P1003 is this endpoint's documented success");
+
+  assert.throws(
+    () => cli("response", "caas-otp-generation", '{"statusCode":"S1000"}'),
+    /Command failed|status/,
+    "S1000 is not the success code of this call"
   );
 });
 

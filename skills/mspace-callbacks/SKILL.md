@@ -10,8 +10,9 @@ sections. Skip these and MO SMS never arrives, USSD does not work, and you never
 subscriber left or a charge failed.
 
 ```bash
-node tools/mspace.mjs list --direction=inbound            # the published callbacks
+node tools/mspace.mjs list --direction=inbound            # all five callbacks
 node tools/mspace.mjs show ussd-receive                   # payload + rules
+node tools/mspace.mjs show subscription-notification      # the one with no published payload
 node tools/mspace.mjs curl sms-mo                         # fields, plus a command that
                                                           # replays it against your handler
 ```
@@ -29,6 +30,11 @@ notification does not** — the documented `POST /subscription/notify` service d
 vocabulary (`timeStamp`, `version`, `applicationId`, `subscriberId`, `frequency`, `status`), so
 accept those and tolerate anything else. Log the raw body on the first delivery in Limited
 Production and widen from there. Do not invent fields for it.
+
+All five are in the catalog, and the one with no published payload is marked as such, so
+`show subscription-notification` gives you its fields, its dedupe key and the warning together.
+Only `subscriberId` and `status` are treated as reliably present: a handler that hard-fails on a
+missing `applicationId` or `timeStamp` drops real subscription changes.
 
 All of them are written out in `references/14-curl-reference.md`: what arrives, every field
 defined, what you must respond, the dedupe key, and a curl that replays the exact payload against

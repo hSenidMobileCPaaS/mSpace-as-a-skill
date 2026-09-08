@@ -65,6 +65,15 @@ or real money. Apply them without being asked.
    Subscriber List treats **`S1001`** as a success. A client hard-coded to `S1000` reports working
    flows as broken. See [references/09-status-codes.md](references/09-status-codes.md).
 
+7. **Send strings as strings.** mSpace types nearly every field as a string, including the ones
+   that look numeric: `amount`, `otp`, `referenceNo`, `externalTrxId`, `action`, `encoding`,
+   `deliveryStatusRequest`. `requestPage` on Subscriber List is the only documented integer, and
+   `applicationMetaData` the only object. A JSON encoder handed a numeric variable sends `"5.00"`
+   as `5`, drops the leading zero from an OTP, and turns a 31-digit `referenceNo` into `8.8e+30` —
+   a body that still looks plausible and fails with `E1103`/`E1107`/`E1312`. Keep the value a
+   string all the way to the wire, and check it with
+   `node tools/mspace.mjs validate <id> '<body>'`.
+
 ---
 
 ## Query the contract, do not recall it
@@ -80,6 +89,7 @@ node tools/mspace.mjs show <id>                    # full contract: params, resp
 node tools/mspace.mjs search "<query>"             # find by intent, e.g. "base size"
 node tools/mspace.mjs curl <id> [key=value ...]    # runnable request + param/response defs
 node tools/mspace.mjs validate <id> '<json>'       # check a payload against the spec
+node tools/mspace.mjs response <id> '<json>'       # read a real response against the contract
 node tools/mspace.mjs code <statusCode>            # decode a status code + the fix
 node tools/mspace.mjs diagnose "<symptom>"         # cause and fix from a symptom
 node tools/mspace.mjs practices [severity]         # security and reliability rules
@@ -120,7 +130,8 @@ contract — which is why the contract, the curl reference and the templates are
 current. Write the code in the project's own conventions, from the contract.
 
 **Working order:** `search`/`list` to find the service → `show` for the exact contract → the curl
-reference for the call → `validate` the payload → `code`/`diagnose` when something fails.
+reference for the call → `validate` the payload → `response` to read what came back →
+`code`/`diagnose` when something fails.
 
 **Whole-integration order:**
 [references/13-implementation-playbook.md](references/13-implementation-playbook.md) takes a
@@ -263,6 +274,20 @@ language-neutrally when the project's stack is not among them.
 - **CaaS OTP verification returns `statusDescription`, not `statusDetail`**, plus a boolean
   `status`. Read both fields, or the one call that took someone's money is the one with no message.
 
+Both are recorded per endpoint in the catalog (`successCodes`, `responseMessageField`), printed by
+`mspace show <id>`, and checked against a real body by
+`node tools/mspace.mjs response <id> '<body>'`.
+
+### Reading the response is half the integration
+
+The answer is not just success or failure. Several responses carry the value the *next* call
+needs — `requestCorrelator` for the charge, `referenceNo` for OTP verification, `requestId` for
+the delivery report — and several carry per-entry outcomes underneath a top-level `S1000`, so a
+multi-recipient SMS can partially fail while the envelope says success. Every endpoint's
+**Reading the response** section in
+[references/14-curl-reference.md](references/14-curl-reference.md) says what to do with the body
+it returns; `mspace response <id> '<body>'` applies the same rules to a body you actually got.
+
 ### Addressing
 
 Subscriber addresses are **always** prefixed `tel:` with no `+` and no spaces:
@@ -298,6 +323,11 @@ subscriber address, and it carries no prefix.
 - **Callback URLs are configured on the application record, not in code.** Changing your route path
   means updating that record too. `E1607` on the outbound path means your handler returned
   something the platform could not parse.
+- **The Subscription Notification URL has no published payload.** Four of the five callbacks are
+  fully specified; that one is not. Its fields are the vocabulary of `POST /subscription/notify`,
+  so accept those, tolerate anything missing, log the raw body on the first delivery in Limited
+  Production, and reconcile gaps with Subscriber List. It is still the only place you learn about a
+  change you did not initiate.
 - **Subscription status has six values**, and `INITIAL`, `REG_PENDING` and `TEMPORARY_BLOCKED` are
   live subscribers in trouble rather than absent ones.
 - **LBS is the odd one out**: `requesterId` and `subscriberId` are two separate mandatory fields,
