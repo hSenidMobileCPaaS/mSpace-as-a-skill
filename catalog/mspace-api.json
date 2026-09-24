@@ -1,6 +1,6 @@
 {
   "$schema": "./mspace-api.schema.json",
-  "catalogVersion": "1.1.0",
+  "catalogVersion": "1.2.0",
   "source": "https://mspace.lk/API_Documentation/mobitel_tap_api.html",
   "platform": {
     "name": "mSpace",
@@ -2344,6 +2344,808 @@
       ]
     }
   ],
+  "maiTokens": {
+    "name": "mAI Tokens",
+    "summary": "mSpace's AI gateway. One OpenAI-shaped API in front of several model providers — chat completions across Claude, Gemini and GPT models, and image generation on GPT Image — billed against an mAI Tokens balance instead of a per-provider account.",
+    "portal": "https://maitokens.mspace.lk",
+    "reference": "references/15-mai-tokens.md",
+    "baseUrl": "https://maitokens.mspace.lk/api",
+    "differsFromTelco": [
+      "Credentials go in an Authorization HEADER, not in the JSON body. There is no applicationId and no password.",
+      "Failures come back as real HTTP status codes with an error object. There is no statusCode/S1000 envelope, so the telco branching rule is inverted here: on mAI Tokens you DO check the HTTP status.",
+      "It is a separate product on a separate host (maitokens.mspace.lk, not api.mspace.lk) with a separate key and a separate balance. An mSpace application password will not authenticate an mAI Tokens call, and an mAI Tokens key will not authenticate an SMS send.",
+      "Nothing about it is Sri-Lanka-specific: there is no MSISDN, no tel: addressing, no operator and no subscriber.",
+      "Nothing about it is a callback. mAI Tokens never calls you; there is no URL to configure on an application record."
+    ],
+    "auth": {
+      "type": "header",
+      "header": "Authorization",
+      "format": "app_<keyId>.<keyValue>",
+      "example": "Authorization: app_<keyId>.<keyValue>",
+      "envVar": "MAI_TOKENS_API_KEY",
+      "note": "The whole value goes in the header verbatim, including the app_ prefix. It is not an OAuth bearer token: do not add the word Bearer, and do not base64-encode it. Generate and rotate the key in the mAI Tokens portal.",
+      "issuedBy": "https://maitokens.mspace.lk"
+    },
+    "models": [
+      {
+        "id": "gemini-3.7-flash",
+        "provider": "Google",
+        "endpoint": "mai-chat-completions",
+        "note": "The newest Gemini Flash generation. Fast general-purpose chat — a sensible default when latency matters."
+      },
+      {
+        "id": "gemini-3.6-flash",
+        "provider": "Google",
+        "endpoint": "mai-chat-completions",
+        "note": "Gemini Flash, previous generation. Fast general-purpose chat."
+      },
+      {
+        "id": "gemini-3.5-flash",
+        "provider": "Google",
+        "endpoint": "mai-chat-completions",
+        "note": "Gemini Flash, earlier generation. Fast general-purpose chat."
+      },
+      {
+        "id": "gemini-3.5-flash-lite",
+        "provider": "Google",
+        "endpoint": "mai-chat-completions",
+        "note": "Lite tier: among the cheapest and fastest. Classification, routing, short replies and anything on a USSD timer."
+      },
+      {
+        "id": "gemini-3.1-flash-lite",
+        "provider": "Google",
+        "endpoint": "mai-chat-completions",
+        "note": "Lite tier, earlier generation. Classification, routing and short replies at the lowest cost."
+      },
+      {
+        "id": "gemini-3.1-pro-preview",
+        "provider": "Google",
+        "endpoint": "mai-chat-completions",
+        "note": "Gemini Pro tier, in preview. Long-context reasoning over large documents and multi-step analysis. A preview model can change behaviour, so pin tests to it deliberately."
+      },
+      {
+        "id": "claude-fable-5",
+        "provider": "Anthropic",
+        "endpoint": "mai-chat-completions",
+        "note": "Claude Fable 5. A frontier Claude model — check its price point in the portal before routing volume to it."
+      },
+      {
+        "id": "claude-opus-5",
+        "provider": "Anthropic",
+        "endpoint": "mai-chat-completions",
+        "note": "Claude Opus 5. Claude's most capable tier for hard reasoning, long drafting and analysis where quality matters more than latency or cost."
+      },
+      {
+        "id": "claude-sonnet-5",
+        "provider": "Anthropic",
+        "endpoint": "mai-chat-completions",
+        "note": "Claude Sonnet 5. Claude's balanced tier — strong reasoning and writing at a lower cost and latency than Opus."
+      },
+      {
+        "id": "claude-sonnet-4-6",
+        "provider": "Anthropic",
+        "endpoint": "mai-chat-completions",
+        "note": "Claude Sonnet 4.6. The previous Sonnet generation — balanced quality and cost."
+      },
+      {
+        "id": "gpt-5.6-sol",
+        "provider": "OpenAI",
+        "endpoint": "mai-chat-completions",
+        "note": "GPT-5.6 family. Check its price point in the portal before routing volume to it."
+      },
+      {
+        "id": "gpt-5.6-terra",
+        "provider": "OpenAI",
+        "endpoint": "mai-chat-completions",
+        "note": "GPT-5.6 family. Check its price point in the portal before routing volume to it."
+      },
+      {
+        "id": "gpt-5.6-luna",
+        "provider": "OpenAI",
+        "endpoint": "mai-chat-completions",
+        "note": "GPT-5.6 family. Check its price point in the portal before routing volume to it."
+      },
+      {
+        "id": "gpt-4o-mini",
+        "provider": "OpenAI",
+        "endpoint": "mai-chat-completions",
+        "note": "Low-cost general model. A sensible default for chat where cost matters."
+      },
+      {
+        "id": "gpt-5-nano",
+        "provider": "OpenAI",
+        "endpoint": "mai-chat-completions",
+        "note": "The smallest GPT-5 model. Very low cost for classification, extraction and short replies."
+      },
+      {
+        "id": "gpt-image-2",
+        "provider": "OpenAI",
+        "endpoint": "mai-image-generation",
+        "note": "The newer GPT Image model. Returns base64, never a URL."
+      },
+      {
+        "id": "gpt-image-1.5",
+        "provider": "OpenAI",
+        "endpoint": "mai-image-generation",
+        "note": "The earlier GPT Image model. Returns base64, never a URL."
+      }
+    ],
+    "rateLimits": {
+      "window": "per minute",
+      "reset": "Rate limits reset every minute.",
+      "onExceed": "HTTP 429. Read the Retry-After header for the recommended wait, and back off exponentially with jitter rather than retrying immediately.",
+      "note": "Quota is enforced two ways — requests per minute and total token spend. They surface as different error codes (RATE_LIMIT_EXCEEDED and TOKEN_QUOTA_EXCEEDED) on the same 429, so read the code, not just the status."
+    },
+    "errorEnvelope": {
+      "shape": {
+        "error": {
+          "message": "Human-readable error message",
+          "type": "Error type or code",
+          "param": "Parameter name that caused the error (if applicable)",
+          "code": "Error code",
+          "additional_data": {
+            "key": "value"
+          }
+        }
+      },
+      "note": "Read error.code first — it is the machine-readable one. error.message is for your logs, not for your branching, and error.param names the offending field on a 400."
+    },
+    "services": [
+      {
+        "id": "mai-chat-completions",
+        "family": "mai",
+        "envVar": "MAI_TOKENS_CHAT_COMPLETIONS_URL",
+        "name": "mAI Tokens Chat Completions",
+        "aliases": [
+          "chat",
+          "llm",
+          "chat completions",
+          "mai chat",
+          "ai chat",
+          "completions"
+        ],
+        "category": "mai",
+        "direction": "outbound",
+        "method": "POST",
+        "path": "/v1/chat/completions",
+        "absoluteUrl": "https://maitokens.mspace.lk/api/v1/chat/completions",
+        "summary": "Generate a model response for a conversation. OpenAI Chat Completions shape, routed to Claude, Gemini or GPT by the model field.",
+        "reference": "references/15-mai-tokens.md",
+        "spendsTokens": true,
+        "parameters": [
+          {
+            "name": "model",
+            "type": "enum",
+            "required": true,
+            "enum": [
+              "gemini-3.7-flash",
+              "gemini-3.6-flash",
+              "gemini-3.5-flash",
+              "gemini-3.5-flash-lite",
+              "gemini-3.1-flash-lite",
+              "gemini-3.1-pro-preview",
+              "claude-fable-5",
+              "claude-opus-5",
+              "claude-sonnet-5",
+              "claude-sonnet-4-6",
+              "gpt-5.6-sol",
+              "gpt-5.6-terra",
+              "gpt-5.6-luna",
+              "gpt-4o-mini",
+              "gpt-5-nano"
+            ],
+            "description": "Which model answers. Each has different capabilities, performance characteristics and price points, and a model your project is not configured for fails with INVALID_LLM_CONFIG."
+          },
+          {
+            "name": "messages",
+            "type": "object[]",
+            "required": true,
+            "description": "The conversation so far, oldest first. Each entry has a role (system, developer, user, assistant or tool) and content, which is either a string or an array of typed parts — text, image and audio parts are supported."
+          },
+          {
+            "name": "temperature",
+            "type": "number",
+            "required": false,
+            "description": "Sampling temperature between 0 and 2. Higher values like 0.8 will make the output more random; lower values make it more focused and deterministic. Defaults to 1."
+          },
+          {
+            "name": "max_completion_tokens",
+            "type": "integer",
+            "required": false,
+            "description": "An upper bound for the number of tokens that can be generated. Set it on every call: it is the only hard ceiling on what one request can cost you."
+          },
+          {
+            "name": "tools",
+            "type": "object[]",
+            "required": false,
+            "description": "A list of tools the model may call. The model replies with tool_calls instead of content, and you send the results back as messages with role tool."
+          },
+          {
+            "name": "response_format",
+            "type": "object",
+            "required": false,
+            "description": "The format in which the model output should be returned, such as { \"type\": \"text\" } or a JSON schema. Use it instead of asking for JSON in the prompt and parsing hopefully."
+          },
+          {
+            "name": "service_tier",
+            "type": "string",
+            "required": false,
+            "description": "Specifies the processing type used for serving the request. Defaults to auto."
+          },
+          {
+            "name": "frequency_penalty",
+            "type": "number",
+            "required": false,
+            "description": "Between -2.0 and 2.0. Positive values penalise new tokens based on their existing frequency in the text so far, reducing verbatim repetition. Defaults to 0."
+          },
+          {
+            "name": "logprobs",
+            "type": "boolean",
+            "required": false,
+            "description": "Whether to return log probabilities of the output tokens or not. Defaults to false."
+          },
+          {
+            "name": "n",
+            "type": "integer",
+            "required": false,
+            "description": "How many chat completion choices to generate for each input message. Every choice is billed, so leave it at the default of 1 unless you genuinely use the alternatives."
+          },
+          {
+            "name": "presence_penalty",
+            "type": "number",
+            "required": false,
+            "description": "Between -2.0 and 2.0. Positive values penalise new tokens based on whether they appear in the text so far, pushing the model towards new topics. Defaults to 0."
+          },
+          {
+            "name": "prompt_cache_key",
+            "type": "string",
+            "required": false,
+            "description": "Groups requests that share a long identical prefix so the provider can cache it. Use a stable value per prompt template, never per user."
+          },
+          {
+            "name": "safety_identifier",
+            "type": "string",
+            "required": false,
+            "description": "A stable identifier used to help detect users violating usage policies. Send a hash of your own user id — never an MSISDN and never a subscriberId."
+          },
+          {
+            "name": "stop",
+            "type": "string|string[]",
+            "required": false,
+            "description": "Up to 4 sequences where the API will stop generating further tokens. Defaults to null."
+          },
+          {
+            "name": "store",
+            "type": "boolean",
+            "required": false,
+            "description": "Whether or not to store the output of this chat completion request. Defaults to false — leave it false for anything carrying subscriber data."
+          },
+          {
+            "name": "top_logprobs",
+            "type": "integer",
+            "required": false,
+            "description": "The number of most likely tokens to return at each token position, 0 to 20. Requires logprobs to be true."
+          },
+          {
+            "name": "top_p",
+            "type": "number",
+            "required": false,
+            "description": "An alternative to sampling with temperature, called nucleus sampling. Defaults to 1. Adjust this or temperature, not both."
+          }
+        ],
+        "responseFields": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Identifier for this completion. Log it — it is what mAI Tokens support traces a bad response by."
+          },
+          {
+            "name": "object",
+            "type": "string",
+            "description": "Always chat.completion."
+          },
+          {
+            "name": "created",
+            "type": "integer",
+            "description": "Unix timestamp of when the completion was created."
+          },
+          {
+            "name": "model",
+            "type": "string",
+            "description": "The model that actually answered. Check it rather than assuming your requested model was used."
+          },
+          {
+            "name": "choices",
+            "type": "object[]",
+            "description": "The generated alternatives, one per n. Each carries index, message, logprobs and finish_reason."
+          },
+          {
+            "name": "choices[].message",
+            "type": "object",
+            "description": "The assistant turn: role, content, refusal, annotations, and tool_calls when the model asked for a tool. Append it to your message history verbatim before the next turn."
+          },
+          {
+            "name": "choices[].finish_reason",
+            "type": "string",
+            "description": "Why generation stopped: stop is a complete answer, length means it hit max_completion_tokens and the content is truncated, tool_calls means the model wants a tool run. Branch on this — a truncated answer is not a failed request."
+          },
+          {
+            "name": "usage",
+            "type": "object",
+            "description": "Token accounting for this call: prompt_tokens, completion_tokens and total_tokens, plus cached and reasoning breakdowns. This is what draws down your balance, so record total_tokens per call."
+          },
+          {
+            "name": "service_tier",
+            "type": "string",
+            "description": "The processing tier that served the request."
+          }
+        ],
+        "sampleRequest": {
+          "model": "gpt-4o-mini",
+          "messages": [
+            {
+              "role": "system",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "You are a concise assistant for a Sri Lankan mobile service. Answer in one short paragraph."
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Explain megapixels in a picture"
+                }
+              ]
+            }
+          ],
+          "response_format": {
+            "type": "text"
+          },
+          "max_completion_tokens": 300
+        },
+        "sampleResponse": {
+          "id": "chatcmpl-B9MBs8CjcvOU2jLn4n570S5qMJKcT",
+          "object": "chat.completion",
+          "created": 1741569952,
+          "model": "gpt-4o-mini",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Megapixels count the millions of pixels a photo contains…",
+                "refusal": null,
+                "annotations": []
+              },
+              "logprobs": null,
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 19,
+            "completion_tokens": 10,
+            "total_tokens": 29,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default"
+        },
+        "errorCodes": [
+          "400",
+          "401",
+          "402",
+          "403",
+          "404",
+          "429",
+          "500",
+          "502",
+          "503",
+          "PROJECT_NOT_FOUND",
+          "PROJECT_INACTIVE",
+          "INVALID_LLM_CONFIG",
+          "RATE_LIMIT_EXCEEDED",
+          "TOKEN_QUOTA_EXCEEDED",
+          "INSUFFICIENT_BALANCE",
+          "FORWARDING_FAILED"
+        ],
+        "rules": [
+          "Call it from your backend only. The key is a bearer-equivalent secret with a spendable balance behind it; a browser or mobile app that holds it can drain the balance.",
+          "Always set max_completion_tokens. Without it a single runaway request can spend an unbounded share of your token balance.",
+          "Branch on the HTTP status here, unlike every telco endpoint in this catalog. There is no statusCode field and no S1000.",
+          "Check finish_reason before using the content. length means the answer is cut off mid-sentence.",
+          "Never put a raw MSISDN, a subscriberId or an mSpace password into a prompt, a safety_identifier or a prompt_cache_key. Prompts leave your trust boundary and reach a third-party model provider.",
+          "Retry only 429 (with RATE_LIMIT_EXCEEDED), 500, 502 and 503, with exponential backoff and jitter. A 400, 401, 402, 403 or 404 will fail identically forever.",
+          "Set an explicit client timeout well above your telco one — a large completion legitimately takes tens of seconds — and never make an LLM call inside a USSD callback's response path.",
+          "Treat model output as untrusted input: never execute it, never interpolate it into SQL or a shell, and never send it straight to a subscriber as an SMS without a length and content check."
+        ]
+      },
+      {
+        "id": "mai-image-generation",
+        "family": "mai",
+        "envVar": "MAI_TOKENS_IMAGE_GENERATIONS_URL",
+        "name": "mAI Tokens Image Generation",
+        "aliases": [
+          "image",
+          "images",
+          "image generation",
+          "mai image",
+          "generate image"
+        ],
+        "category": "mai",
+        "direction": "outbound",
+        "method": "POST",
+        "path": "/v1/images/generations",
+        "absoluteUrl": "https://maitokens.mspace.lk/api/v1/images/generations",
+        "summary": "Create an image from a text prompt on a GPT Image model. The image comes back as base64 in the response body rather than as a URL.",
+        "reference": "references/15-mai-tokens.md",
+        "spendsTokens": true,
+        "parameters": [
+          {
+            "name": "prompt",
+            "type": "string",
+            "required": true,
+            "description": "A text description of the desired image(s). The maximum length is 32000 characters for the GPT Image models."
+          },
+          {
+            "name": "model",
+            "type": "enum",
+            "required": false,
+            "enum": [
+              "gpt-image-2",
+              "gpt-image-1.5"
+            ],
+            "description": "The image model to use. Send it explicitly rather than relying on a default, so a change of default never changes your output or your cost."
+          },
+          {
+            "name": "background",
+            "type": "enum",
+            "required": false,
+            "enum": [
+              "transparent",
+              "opaque",
+              "auto"
+            ],
+            "description": "Background treatment. transparent requires an output_format of png or webp — it is silently useless with jpeg. Defaults to auto."
+          },
+          {
+            "name": "moderation",
+            "type": "enum",
+            "required": false,
+            "enum": [
+              "low",
+              "auto"
+            ],
+            "description": "Content-moderation strictness for the generated image. Defaults to auto."
+          },
+          {
+            "name": "n",
+            "type": "integer",
+            "required": false,
+            "description": "How many images to generate, 1 to 10. Every image is billed separately. Defaults to 1."
+          },
+          {
+            "name": "output_compression",
+            "type": "integer",
+            "required": false,
+            "description": "Compression level from 0 to 100 for the webp and jpeg output formats. Ignored for png. Defaults to 100."
+          },
+          {
+            "name": "output_format",
+            "type": "enum",
+            "required": false,
+            "enum": [
+              "png",
+              "jpeg",
+              "webp"
+            ],
+            "description": "The encoding of the returned image. Defaults to png."
+          },
+          {
+            "name": "quality",
+            "type": "enum",
+            "required": false,
+            "enum": [
+              "auto",
+              "high",
+              "medium",
+              "low"
+            ],
+            "description": "Rendering quality. This is the main cost and latency lever — low is dramatically cheaper and faster than high. Defaults to auto."
+          },
+          {
+            "name": "size",
+            "type": "enum",
+            "required": false,
+            "enum": [
+              "1024x1024",
+              "1536x1024",
+              "1024x1536",
+              "auto"
+            ],
+            "description": "Dimensions of the generated image: square, landscape, portrait, or auto to let the model choose. Defaults to auto."
+          },
+          {
+            "name": "partial_images",
+            "type": "integer",
+            "required": false,
+            "description": "Number of partial images, 0 to 3, to emit while generating. Only meaningful with stream set to true. Defaults to 0."
+          },
+          {
+            "name": "stream",
+            "type": "boolean",
+            "required": false,
+            "description": "Generate the image in streaming mode, emitting partial images as server-sent events. Defaults to false."
+          },
+          {
+            "name": "style",
+            "type": "enum",
+            "required": false,
+            "enum": [
+              "vivid",
+              "natural"
+            ],
+            "description": "Rendering style — vivid is more dramatic and saturated, natural is more literal. Defaults to vivid."
+          },
+          {
+            "name": "user",
+            "type": "string",
+            "required": false,
+            "description": "A unique identifier representing your end-user, used for abuse monitoring. Send an opaque internal id, never an MSISDN."
+          }
+        ],
+        "responseFields": [
+          {
+            "name": "created",
+            "type": "integer",
+            "description": "Unix timestamp of when the image was created."
+          },
+          {
+            "name": "data",
+            "type": "object[]",
+            "description": "One entry per generated image. Each carries b64_json — the image bytes, base64-encoded. The GPT Image models always return base64, never a URL, so decode and store it yourself."
+          },
+          {
+            "name": "background",
+            "type": "string",
+            "description": "The background treatment actually applied."
+          },
+          {
+            "name": "output_format",
+            "type": "string",
+            "description": "The encoding of the returned bytes — use it to pick the file extension and the Content-Type when you store or serve the image."
+          },
+          {
+            "name": "quality",
+            "type": "string",
+            "description": "The quality level actually used, which is the resolved value when you sent auto."
+          },
+          {
+            "name": "size",
+            "type": "string",
+            "description": "The dimensions actually produced, which is the resolved value when you sent auto."
+          },
+          {
+            "name": "usage",
+            "type": "object",
+            "description": "Token accounting: input_tokens with a text/image breakdown, output_tokens and total_tokens. Image output tokens dwarf the prompt, so quality and n drive the cost, not prompt length."
+          }
+        ],
+        "sampleRequest": {
+          "model": "gpt-image-2",
+          "prompt": "a red apple on a plain background",
+          "n": 1,
+          "size": "1024x1024",
+          "quality": "low"
+        },
+        "sampleResponse": {
+          "created": 1767763326,
+          "background": "opaque",
+          "data": [
+            {
+              "b64_json": "<base64-encoded image bytes>"
+            }
+          ],
+          "output_format": "png",
+          "quality": "low",
+          "size": "1024x1024",
+          "usage": {
+            "input_tokens": 9,
+            "input_tokens_details": {
+              "image_tokens": 0,
+              "text_tokens": 9
+            },
+            "output_tokens": 272,
+            "total_tokens": 281
+          }
+        },
+        "errorCodes": [
+          "400",
+          "401",
+          "402",
+          "403",
+          "404",
+          "429",
+          "500",
+          "502",
+          "503",
+          "PROJECT_NOT_FOUND",
+          "PROJECT_INACTIVE",
+          "INVALID_LLM_CONFIG",
+          "RATE_LIMIT_EXCEEDED",
+          "TOKEN_QUOTA_EXCEEDED",
+          "INSUFFICIENT_BALANCE",
+          "FORWARDING_FAILED"
+        ],
+        "rules": [
+          "The response is base64, not a URL. Never log the body, never store it in a database text column, and never return it through a JSON API — decode it once and put the bytes in object storage.",
+          "Generation is slow. Do it in a background job and hand the user a job id, never inside a request the user is waiting on and never inside a callback handler.",
+          "quality and n set the price. Default to low for previews and thumbnails, and only spend high where the image is the product.",
+          "Cache by a hash of the resolved prompt plus every parameter. The same prompt costs the same again every time you ask.",
+          "transparent backgrounds need output_format png or webp; with jpeg the setting is quietly discarded.",
+          "Never send subscriber-identifying text in a prompt or in user."
+        ]
+      }
+    ],
+    "errors": {
+      "400": {
+        "http": 400,
+        "class": "client",
+        "description": "Bad request — invalid request format or a malformed payload. Common causes are invalid JSON, missing required fields and invalid parameter values.",
+        "fix": "Read error.param: it names the offending field. Validate the payload before sending rather than after failing."
+      },
+      "401": {
+        "http": 401,
+        "class": "configuration",
+        "description": "Unauthorized. Your API key is either missing, invalid, or expired.",
+        "fix": "Send the key verbatim as Authorization: app_<keyId>.<keyValue>. Do not prepend Bearer, do not base64-encode it, and check the value actually reached the process rather than being an empty environment variable."
+      },
+      "402": {
+        "http": 402,
+        "class": "configuration",
+        "description": "Payment required — insufficient token balance.",
+        "fix": "Top up the balance in the mAI Tokens portal. Alert on this: it stops every AI call in the product, not one request."
+      },
+      "403": {
+        "http": 403,
+        "class": "configuration",
+        "description": "Forbidden — insufficient permissions, or the model you asked for is restricted for your project.",
+        "fix": "Check the project is ACTIVE and the model is enabled for it in the mAI Tokens portal."
+      },
+      "404": {
+        "http": 404,
+        "class": "configuration",
+        "description": "Not found — no project matches the API key you sent.",
+        "fix": "Verify the key is a complete keyId.keyValue pair and belongs to the project you think it does. A truncated key looks exactly like a wrong one."
+      },
+      "429": {
+        "http": 429,
+        "class": "transient",
+        "description": "Too many requests — rate limit exceeded, or the token quota is exhausted. Please wait before making additional requests.",
+        "fix": "Read the Retry-After header and back off exponentially with jitter. Check error.code: RATE_LIMIT_EXCEEDED clears on its own, TOKEN_QUOTA_EXCEEDED does not."
+      },
+      "500": {
+        "http": 500,
+        "class": "transient",
+        "description": "Internal server error — an unexpected error on the mAI Tokens side. Their team is automatically notified of server errors.",
+        "fix": "Retry with backoff, cap the attempts, then dead-letter and surface a degraded experience rather than hanging."
+      },
+      "502": {
+        "http": 502,
+        "class": "transient",
+        "description": "Bad gateway — mAI Tokens failed to forward the request to the upstream LLM provider, usually provider downtime or connectivity.",
+        "fix": "Retry with backoff, and consider failing over to another model: a 502 is usually one provider being down, not mAI Tokens."
+      },
+      "503": {
+        "http": 503,
+        "class": "transient",
+        "description": "Service unavailable — temporarily down for maintenance or under high load.",
+        "fix": "Retry with backoff. Check the provider status pages before escalating."
+      },
+      "PROJECT_NOT_FOUND": {
+        "http": 404,
+        "class": "configuration",
+        "description": "Project not found with API key. The provided API key doesn't match any existing project.",
+        "fix": "Regenerate the key in the mAI Tokens portal and confirm both halves of keyId.keyValue were copied."
+      },
+      "PROJECT_INACTIVE": {
+        "http": 403,
+        "class": "configuration",
+        "description": "Project is not active. The project exists but its status is not ACTIVE.",
+        "fix": "Activate the project in the mAI Tokens portal. No code change will help."
+      },
+      "INVALID_LLM_CONFIG": {
+        "http": 400,
+        "class": "configuration",
+        "description": "Invalid LLM model. The specified model is not configured or allowed for your project.",
+        "fix": "Use a model enabled for the project. This is the mAI Tokens equivalent of E1309 — provisioning, not payload."
+      },
+      "RATE_LIMIT_EXCEEDED": {
+        "http": 429,
+        "class": "transient",
+        "description": "Rate limit exceeded. Your project has exceeded the allowed number of requests per time period.",
+        "fix": "Back off and retry; limits reset every minute. Queue bursts rather than firing them in parallel."
+      },
+      "TOKEN_QUOTA_EXCEEDED": {
+        "http": 429,
+        "class": "configuration",
+        "description": "Token quota exceeded. Your project has used up its allocated token quota.",
+        "fix": "Retrying will not clear this. Raise the quota or top up in the portal, and alert rather than looping."
+      },
+      "INSUFFICIENT_BALANCE": {
+        "http": 402,
+        "class": "configuration",
+        "description": "Insufficient token balance. Your current balance is too low to process the request.",
+        "fix": "Top up in the mAI Tokens portal. Monitor the balance proactively so this never fires in production."
+      },
+      "FORWARDING_FAILED": {
+        "http": 502,
+        "class": "transient",
+        "description": "Failed to forward the request. The call to the upstream LLM provider failed due to connectivity or provider issues.",
+        "fix": "Retry with backoff, or fail over to a model from a different provider."
+      }
+    },
+    "statusPages": {
+      "OpenAI": "https://status.openai.com/",
+      "Claude": "https://status.claude.com/",
+      "Gemini": "https://aistudio.google.com/status"
+    },
+    "practices": [
+      {
+        "id": "mai-key-is-a-spend-key",
+        "severity": "critical",
+        "title": "Treat the mAI Tokens key like a payment key",
+        "detail": "It draws down a real token balance. Backend only, environment variable only, never in a client bundle, never in a log line, never in a committed file. Rotate it in the mAI Tokens portal the moment it is exposed.",
+        "reference": "references/15-mai-tokens.md"
+      },
+      {
+        "id": "mai-cap-spend-per-call",
+        "severity": "high",
+        "title": "Put a ceiling on every AI call",
+        "detail": "Set max_completion_tokens on every chat call and keep n at 1; keep image quality low and n at 1 unless the image is the product. Without a per-call ceiling one loop can exhaust the balance and take every AI feature down with a 402.",
+        "reference": "references/15-mai-tokens.md"
+      },
+      {
+        "id": "mai-no-pii-in-prompts",
+        "severity": "critical",
+        "title": "Never put subscriber identity in a prompt",
+        "detail": "Prompts leave your trust boundary and reach a third-party model provider. No MSISDN, no subscriberId (masked or not), no mSpace password, no OTP. Redact before the call, and keep store false.",
+        "reference": "references/15-mai-tokens.md"
+      },
+      {
+        "id": "mai-http-status-branching",
+        "severity": "high",
+        "title": "Branch on the HTTP status for mAI Tokens, on statusCode for telco",
+        "detail": "mAI Tokens returns real HTTP status codes with an error object and no statusCode field; the telco APIs return HTTP 200 with statusCode. One shared HTTP helper that assumes either convention is wrong for half your calls. Keep the two clients separate.",
+        "reference": "references/15-mai-tokens.md"
+      },
+      {
+        "id": "mai-never-in-a-callback-path",
+        "severity": "high",
+        "title": "Never call a model inside a callback response path",
+        "detail": "USSD sessions time out in seconds and mSpace expects S1000 immediately. Acknowledge the callback first, generate out of band, then deliver the answer by SMS or on the next USSD screen.",
+        "reference": "references/15-mai-tokens.md"
+      },
+      {
+        "id": "mai-output-is-untrusted",
+        "severity": "high",
+        "title": "Treat model output as untrusted input",
+        "detail": "Never execute it, never interpolate it into SQL or a shell, and never forward it to a subscriber unchecked. An SMS built from a model response still costs money per part and still represents your brand.",
+        "reference": "references/15-mai-tokens.md"
+      }
+    ]
+  },
   "statusCodeClasses": {
     "success": {
       "retry": false,

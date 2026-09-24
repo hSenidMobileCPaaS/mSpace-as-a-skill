@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "mspace",
-  "description": "mSpace telco integration skills for AI agents — SMS, USSD, Subscription, OTP, CaaS charging and LBS.",
+  "description": "mSpace telco integration skills for AI agents — SMS, USSD, Subscription, OTP, CaaS charging, LBS and mAI Tokens.",
   "owner": {
     "name": "hSenid Mobile Solutions",
     "url": "https://www.hsenidmobile.com"

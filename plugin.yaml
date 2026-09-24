@@ -1,5 +1,5 @@
 name: mspace
-version: 1.1.0
+version: 1.2.0
 description: mSpace telco integration for AI agents — always-on context, bundled skills, and slash commands.
 license: Proprietary — see LICENSE
 author: hSenid Mobile Solutions
@@ -10,6 +10,7 @@ provides_skills:
   - mspace-callbacks
   - mspace-debug
   - mspace-golive
+  - mspace-mai
   - mspace-help
 provides_commands:
   - mspace
@@ -18,4 +19,5 @@ provides_commands:
   - mspace-callbacks
   - mspace-debug
   - mspace-golive
+  - mspace-mai
   - mspace-help

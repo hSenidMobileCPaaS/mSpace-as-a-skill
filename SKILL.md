@@ -1,6 +1,6 @@
 ---
 name: mspace
-description: Build and integrate mSpace (Mobitel's Sri Lankan application platform) services into any application — SMS, USSD, Subscription (register, unregister, status, base size, charging info, subscriber list, notifications), OTP, CaaS charging (OTP-authorised mobile-account debit) and LBS. Use this whenever the user mentions mSpace, Inzpire, Xpand, api.mspace.lk, MSISDN/`tel:` addressing, short code and keyword routing, USSD menus, subscriber base size, mobile-account charging, or telco SMS/USSD in Sri Lanka. Covers request/response contracts, callback (webhook) handlers, status codes, credential handling and go-live requirements.
+description: Build and integrate mSpace (Mobitel's Sri Lankan application platform) services into any application — SMS, USSD, Subscription (register, unregister, status, base size, charging info, subscriber list, notifications), OTP, CaaS charging (OTP-authorised mobile-account debit) and LBS. Use this whenever the user mentions mSpace, Inzpire, Xpand, api.mspace.lk, MSISDN/`tel:` addressing, short code and keyword routing, USSD menus, subscriber base size, mobile-account charging, or telco SMS/USSD in Sri Lanka. Also covers **mAI Tokens**, mSpace's AI gateway — chat completions across Claude, Gemini and GPT models and image generation on an OpenAI-shaped API — so use this skill too whenever the user mentions mAI Tokens, maitokens.mspace.lk, or an mSpace AI/LLM feature. Covers request/response contracts, callback (webhook) handlers, status codes, credential handling and go-live requirements.
 ---
 
 # mSpace Integration Skill
@@ -14,6 +14,13 @@ no-code track: Contact, Vote, Alert and Scheduled Messages applications created 
 through the platform without writing anything. If a user's requirement is fully covered by an
 Xpand template, say so rather than building an integration.
 
+mSpace also runs **mAI Tokens**, an AI gateway: one OpenAI-shaped API in front of Claude, Gemini
+and GPT models plus image generation, billed from an mAI Tokens balance. It shares the brand and
+almost nothing else — its own host, header credentials instead of body credentials, real HTTP
+status codes instead of the `S1000` envelope, no subscriber and no callbacks. It is covered here
+in full, kept deliberately separate so its conventions never get applied to a telco call or the
+other way round. See [references/15-mai-tokens.md](references/15-mai-tokens.md).
+
 This skill makes you able to build a correct, production-shaped mSpace integration from scratch,
 or add mSpace to an existing product, **in any language**. The platform is JSON over HTTPS with a
 shared-secret credential pair; nothing about it privileges a particular runtime or framework.
@@ -21,7 +28,8 @@ Build in whatever the host project already uses.
 
 **Every call comes from one place: [references/14-curl-reference.md](references/14-curl-reference.md).**
 It writes out every endpoint as a runnable curl, with every parameter defined, the response it
-returns and every response field explained — plus all the inbound callbacks. Translate the request
+returns and every response field explained — plus all the inbound callbacks and both mAI Tokens
+endpoints. Translate the request
 into the host project's own HTTP client and idiom, and that is the call. There is no code
 generator here on purpose: a generator would serve a handful of languages and go stale as their
 idioms move, while a curl is the same call in every language and never expires.
@@ -36,7 +44,8 @@ when one matches the project, never a reason to introduce one of those runtimes.
 ## The rules you must never break
 
 These are the mistakes that cost service providers their application approval, their subscribers,
-or real money. Apply them without being asked.
+or real money. Apply them without being asked. (Seven for the telco platform, plus one for the AI
+gateway.)
 
 1. **Never hardcode `applicationId` or `password`.** They go in environment variables, read
    through one config module that validates at startup. Never in source, never in a client bundle,
@@ -74,6 +83,12 @@ or real money. Apply them without being asked.
    string all the way to the wire, and check it with
    `node tools/mspace.mjs validate <id> '<body>'`.
 
+8. **Never let subscriber identity reach an mAI Tokens prompt.** Prompts leave your trust
+   boundary and reach a third-party model provider. No MSISDN, no `subscriberId` (a masked value
+   is still a stable identifier), no OTP, no credential — and cap every AI call with
+   `max_completion_tokens`, because an uncapped loop empties a shared prepaid balance. See
+   [references/15-mai-tokens.md](references/15-mai-tokens.md).
+
 ---
 
 ## Query the contract, do not recall it
@@ -96,6 +111,7 @@ node tools/mspace.mjs practices [severity]         # security and reliability ru
 node tools/mspace.mjs checklist                    # go-live checklist
 node tools/mspace.mjs reference <doc>              # print a reference document
 node tools/mspace.mjs platform                     # base URL, tracks, operator, conventions
+node tools/mspace.mjs mai [models|errors]          # the mAI Tokens gateway: auth, models, errors
 ```
 
 `--json` on any command for machine-readable output. If you cannot run commands — or Node is not
@@ -110,7 +126,8 @@ sees a credential, and puts no constraint on the stack you build in.
 from.** Each endpoint is written out at the wire: the request as a runnable curl, every parameter
 defined with its type and whether it is required, the exact response, every response field
 explained, and that endpoint's status codes with their handling class — plus the same for the
-inbound callbacks, each with a command that replays it against your own handler.
+inbound callbacks, each with a command that replays it against your own handler, and both mAI
+Tokens endpoints with their own auth and error tables.
 
 Translate the request into the host project's HTTP client and idiom. That is the whole job for the
 call itself: the body, the headers and the branching are identical in every language, so Ruby,
@@ -158,7 +175,9 @@ developer bundle, which runs locally at `http://localhost:10001/`.
 
 **Step 2 — Pick the services.** Map the product requirement to APIs using the table below. Most
 real applications need *Subscription + SMS* at minimum; paid one-off flows add *CaaS*;
-feature-phone reach adds *USSD*; web or app sign-up adds *OTP*.
+feature-phone reach adds *USSD*; web or app sign-up adds *OTP*; anything generating text or
+images adds *mAI Tokens*, which needs its own key from <https://maitokens.mspace.lk> rather than
+the application record.
 
 **Step 3 — Pick the stack, then scaffold config before code.** The stack is the host project's,
 not the template's: a Django codebase gets Python, a Spring service gets Java, a Laravel app gets
@@ -230,8 +249,11 @@ call — see [06-caas](references/06-caas.md). Voice and IVR are not in the docu
 | Be told the outcome of a charge | Charging Notification | *your Charging Notification URL* | [06-caas](references/06-caas.md), [08-callbacks](references/08-callbacks.md) |
 | Locate a subscriber | LBS Request Location | `POST /lbs/request` | [07-lbs](references/07-lbs.md) |
 | Voice / IVR, balance query | Not in the public documentation | — | [07-lbs](references/07-lbs.md) |
+| **Ask a model / generate text** | mAI Tokens Chat Completions | `POST https://maitokens.mspace.lk/api/v1/chat/completions` | [15-mai-tokens](references/15-mai-tokens.md) |
+| **Generate an image** | mAI Tokens Image Generation | `POST https://maitokens.mspace.lk/api/v1/images/generations` | [15-mai-tokens](references/15-mai-tokens.md) |
 
-Production host: `https://api.mspace.lk`. Every row above as a runnable request with its
+Production host: `https://api.mspace.lk` — except the two mAI Tokens rows, which are on
+`https://maitokens.mspace.lk/api`. Every row above as a runnable request with its
 parameters and response defined: [references/14-curl-reference.md](references/14-curl-reference.md).
 
 **Configure one environment variable per provisioned service** — `MSPACE_SMS_SEND_URL`,
@@ -265,6 +287,12 @@ endpoint. [templates/](templates/README.md) has complete working implementations
 in six languages — read the closest one for shape rather than inventing a new structure — and
 [references/12-any-stack.md](references/12-any-stack.md) specifies the same thing
 language-neutrally when the project's stack is not among them.
+
+**mAI Tokens is the one exception to every sentence above.** Its credential is an
+`Authorization` header (`app_<keyId>.<keyValue>`, verbatim, no `Bearer`), it returns real HTTP
+status codes with an `error` object and no `statusCode` field, and it needs a client of its own:
+one shared HTTP helper will apply exactly one of the two conventions and be wrong for half your
+calls. [references/15-mai-tokens.md](references/15-mai-tokens.md) has the whole contract.
 
 ### Two exceptions to the envelope, both worth coding for
 
@@ -333,6 +361,12 @@ subscriber address, and it carries no prefix.
 - **LBS is the odd one out**: `requesterId` and `subscriberId` are two separate mandatory fields,
   and the response uses `messageID` (capital D) and `timestamp` (lower-case s) where every other
   service uses different casing.
+- **The mAI Tokens key has no *Allowed Host Address* list.** Unlike every telco endpoint, a leaked
+  key works from anywhere in the world until you rotate it — and it spends a prepaid balance.
+  There is no network control standing between an exposed key and your money.
+- **An AI answer cannot be generated inside a callback.** A completion takes tens of seconds; a
+  USSD session dies in far less and mSpace wants `S1000` immediately. Acknowledge first, generate
+  out of band, deliver by MT SMS or on the next screen.
 - **TLS:** if a host serves an incomplete certificate chain, strict clients fail where a browser
   papers over it — Node, Python, Java, Go and .NET all reject it. Disabling verification
   (`rejectUnauthorized: false`, `verify=False`, `InsecureSkipVerify`,
@@ -362,7 +396,8 @@ Read the one that matches the task. Do not guess parameter names — they are al
 | [11-production-checklist.md](references/11-production-checklist.md) | Pre-go-live verification |
 | [12-any-stack.md](references/12-any-stack.md) | The integration specified language-neutrally: the seven components, per-language notes, port acceptance checklist |
 | [13-implementation-playbook.md](references/13-implementation-playbook.md) | A to Z: greenfield / mid-build / retrofit, the four flow recipes, testing without an account, go-live |
-| [14-curl-reference.md](references/14-curl-reference.md) | **Every endpoint as a runnable curl** — request, parameter definitions, response, response-field definitions, per-endpoint status codes, and the same for every callback |
+| [14-curl-reference.md](references/14-curl-reference.md) | **Every endpoint as a runnable curl** — request, parameter definitions, response, response-field definitions, per-endpoint status codes, and the same for every callback and both mAI Tokens endpoints |
+| [15-mai-tokens.md](references/15-mai-tokens.md) | **mAI Tokens** — the AI gateway: auth, models, chat completions, image generation, the error table, and the rules for putting a model call inside a telco flow |
 
 Templates in [templates/](templates/README.md) are working reference implementations of the same
 integration — config, client, callback handlers and session store — in **TypeScript/Node, Python,

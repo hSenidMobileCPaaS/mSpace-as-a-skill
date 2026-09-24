@@ -1,6 +1,6 @@
 ---
 name: mspace-help
-description: Quick reference for the mSpace skill — available commands, services covered, and which reference document covers what. Use when the user asks what the mSpace skill can do.
+description: Quick reference for the mSpace skill — available commands, services covered (telco and mAI Tokens), and which reference document covers what. Use when the user asks what the mSpace skill can do.
 ---
 
 # mSpace skill — quick reference
@@ -11,6 +11,7 @@ description: Quick reference for the mSpace skill — available commands, servic
 node tools/mspace.mjs help        # every command
 node tools/mspace.mjs list        # every service and callback
 node tools/mspace.mjs platform    # base URL, tracks, operator, conventions
+node tools/mspace.mjs mai         # the mAI Tokens AI gateway: auth, models, errors
 ```
 
 Offline, zero-dependency, read-only, and it never sees your credentials. Add `--json` to any
@@ -29,6 +30,7 @@ command for machine-readable output.
 | `checklist` | Am I ready for production? |
 | `reference <doc>` | Show me the full guide. |
 | `platform` | Base URL, tracks, operator, conventions. |
+| `mai [models|errors]` | How do I call the AI gateway, which model do I want, and what can go wrong? |
 
 ## Skills
 
@@ -40,6 +42,7 @@ command for machine-readable output.
 | `mspace-review` | Auditing existing code |
 | `mspace-debug` | A failing call or callback |
 | `mspace-golive` | The pre-production checklist |
+| `mspace-mai` | The mAI Tokens AI gateway — chat completions and image generation |
 
 ## The six Inzpire APIs
 
@@ -64,12 +67,21 @@ schema exists with no endpoint path). Do not invent endpoints for either.
 Contact, Vote, Alert and Scheduled Messages applications. If a requirement is fully covered by an
 Xpand template, an application there beats an integration.
 
+**mAI Tokens** — mSpace's AI gateway, on `https://maitokens.mspace.lk/api`: chat completions
+(`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`,
+`gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-fable-5`, `claude-opus-5`,
+`claude-sonnet-5`, `claude-sonnet-4-6`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`,
+`gpt-4o-mini`, `gpt-5-nano`) and image generation (`gpt-image-2`, `gpt-image-1.5`). A
+**separate product**: its key goes in an `Authorization` header, it returns real HTTP status
+codes rather than `S1000`, it has no subscriber and no callbacks, and it needs its own client.
+`references/15-mai-tokens.md`.
+
 ## References
 
 `01-getting-started` · `02-sms` · `03-ussd` · `04-subscription` · `05-otp` · `06-caas` ·
 `07-lbs` · `08-callbacks` · `09-status-codes` · `10-security-best-practices` ·
 `11-production-checklist` · `12-any-stack` · `13-implementation-playbook` ·
-`14-curl-reference`
+`14-curl-reference` · `15-mai-tokens`
 
 The first six after getting-started are the six APIs mSpace publishes on its Inzpire services
 page: SMS, USSD, Subscription, OTP, CaaS and LBS — one document each.
@@ -78,8 +90,9 @@ page: SMS, USSD, Subscription, OTP, CaaS and LBS — one document each.
 
 **`references/14-curl-reference.md`** is where every call comes from: each endpoint at the wire — a
 runnable curl, every parameter defined, the response, every response field explained, that
-endpoint's status codes — plus every callback with a replay command. Translate the request into the
-project's own HTTP client; that is the integration.
+endpoint's status codes — plus every callback with a replay command and both mAI Tokens endpoints
+with their own auth and error tables. Translate the request into the project's own HTTP client;
+that is the integration.
 
 ```bash
 node tools/mspace.mjs curl subscription-query-base              # the cheapest call to prove setup
@@ -111,6 +124,8 @@ else. The CLI above needs Node, but it is only a documentation reader.
 4. **A charge is three exchanges** — OTP generation, OTP verification, then the notification that
    settles it — and it is idempotent on `externalTrxId`, or you double-charge a real person.
 5. **Credentials live in environment variables**, and mSpace is called from the backend only.
+6. **mAI Tokens follows none of the above** — its own host, header auth, real HTTP status codes,
+   its own key and its own balance. Keep it in a separate client.
 
 No provisioned application yet? The developer bundle's simulator runs the whole thing locally at
 `http://localhost:10001/`.

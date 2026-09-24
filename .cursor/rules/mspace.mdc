@@ -1,5 +1,5 @@
 ---
-description: mSpace integration (SMS, USSD, Subscription, OTP, CaaS, LBS) — Mobitel, Sri Lanka
+description: mSpace integration (SMS, USSD, Subscription, OTP, CaaS, LBS) and mAI Tokens, its AI gateway — Mobitel, Sri Lanka
 globs:
 alwaysApply: false
 ---
@@ -18,9 +18,15 @@ It has two tracks: **Inzpire**, the API track this skill is about, and **Xpand**
 for Contact, Vote, Alert and Scheduled Messages applications. If the requirement is fully covered
 by an Xpand template, say so rather than building an integration.
 
+mSpace also runs **mAI Tokens**, an AI gateway: one OpenAI-shaped API in front of Claude, Gemini
+and GPT models, plus image generation, billed from an mAI Tokens balance. It shares the brand and
+almost nothing else — not even the host — so it has its own section at the end of this file and
+its own reference, [references/15-mai-tokens.md](references/15-mai-tokens.md). **Do not apply the
+telco rules below to an mAI Tokens call, or the mAI Tokens rules to a telco one.**
+
 **Apply these instructions whenever the work involves mSpace, Inzpire, Xpand, `api.mspace.lk`,
 `tel:` MSISDN addressing, USSD menus, short code and keyword routing, subscriber base size,
-mobile-account charging, or telco SMS in Sri Lanka.**
+mobile-account charging, telco SMS in Sri Lanka, or mAI Tokens / `maitokens.mspace.lk`.**
 
 The platform is JSON over HTTPS, so **any language builds a complete integration** — write it in
 whatever the host project already uses. Every endpoint is written out as a runnable curl, with its
@@ -55,6 +61,9 @@ TypeScript/Node, Python, Java, Go, PHP and C# as worked examples.
    `externalTrxId`, `action`, `encoding` and `deliveryStatusRequest` all look numeric and are all
    strings. Serialised as JSON numbers they corrupt the body silently — `"5.00"` becomes `5`, an
    OTP loses its leading zero, a 31-digit `referenceNo` becomes `8.8e+30`.
+8. **Never let subscriber identity reach an mAI Tokens prompt**, and cap every AI call with
+   `max_completion_tokens`. Prompts leave your trust boundary and reach a third-party model
+   provider, and an uncapped loop empties a shared prepaid balance.
 
 ---
 
@@ -78,6 +87,7 @@ node tools/mspace.mjs practices [severity]         # security and reliability ru
 node tools/mspace.mjs checklist                    # go-live checklist
 node tools/mspace.mjs reference <doc>              # print a reference document
 node tools/mspace.mjs platform                     # base URL, tracks, operator, conventions
+node tools/mspace.mjs mai [models|errors]          # the mAI Tokens gateway: auth, models, errors
 ```
 
 Add `--json` to any command for machine-readable output. If you cannot run commands — or Node is
@@ -130,6 +140,7 @@ read — never a reason to add one of those runtimes to a project.
 | Building in a stack with no template | [references/12-any-stack.md](references/12-any-stack.md) |
 | Taking a project from nothing to production, or adding mSpace to an existing app | [references/13-implementation-playbook.md](references/13-implementation-playbook.md) |
 | **Every endpoint as curl** — request, parameter definitions, response, response fields | [references/14-curl-reference.md](references/14-curl-reference.md) |
+| **mAI Tokens** — the AI gateway: auth, models, chat completions, image generation, errors | [references/15-mai-tokens.md](references/15-mai-tokens.md) |
 
 Working reference implementations in [templates/](templates/README.md) for TypeScript/Node,
 Python, Java, Go, PHP and C#. Read the one matching the project's stack for shape rather than
@@ -190,6 +201,8 @@ and the client should refuse to call it rather than fail with `E1309` at the pla
 | Charging outcome | *your Charging Notification URL* |
 | Locate a subscriber | `POST /lbs/request` |
 | Voice / IVR, balance query | Not publicly documented — do not invent endpoints |
+| **Ask a model / generate text** | `POST https://maitokens.mspace.lk/api/v1/chat/completions` |
+| **Generate an image** | `POST https://maitokens.mspace.lk/api/v1/images/generations` |
 
 Each of these as a runnable request, with every parameter and response field defined:
 [references/14-curl-reference.md](references/14-curl-reference.md).
@@ -279,6 +292,16 @@ carries no `tel:` prefix.
 - ❌ Logging `password`, the OTP, `referenceNo`, `requestCorrelator`, or an unmasked
   `subscriberId`.
 - ❌ Inventing an IVR or balance-query endpoint — there is no public specification for either.
+- ❌ Sending an mAI Tokens key as `Bearer …`, or sending it in the JSON body — it goes in the
+  `Authorization` header **verbatim**, `app_<keyId>.<keyValue>`.
+- ❌ Looking for `statusCode` in an mAI Tokens response, or reusing the telco client for it — mAI
+  Tokens returns real HTTP status codes and no `S1000`. Keep two clients.
+- ❌ Interpolating an MSISDN or a `subscriberId` into a prompt — that sends subscriber identity
+  to a third-party model provider.
+- ❌ Using a model response without checking `finish_reason` — `length` means it is cut off.
+- ❌ Retrying `TOKEN_QUOTA_EXCEEDED` — it is a `429` that will never clear. Alert instead.
+- ❌ Calling a model inside a callback's response path — the session dies before it answers.
+- ❌ Sending a model's display name (`Claude Opus 5`) as `model` — the id is `claude-opus-5`.
 
 ---
 
@@ -301,3 +324,65 @@ carries no `tel:` prefix.
 - Use a decimal type for money — `BigDecimal`, `decimal.Decimal`, `decimal`, `bcmath`, a decimal
   library, or integer minor units. Never a binary float. The currency is `LKR`.
 - Match the host project's existing stack, structure and conventions.
+
+---
+
+## mAI Tokens — the AI gateway
+
+`https://maitokens.mspace.lk/api` · portal <https://maitokens.mspace.lk> · full contract
+[references/15-mai-tokens.md](references/15-mai-tokens.md) · `node tools/mspace.mjs mai`
+
+**Everything above is inverted here.** Read this table before writing a line of AI code:
+
+| | Telco APIs | mAI Tokens |
+|---|---|---|
+| Host | `api.mspace.lk` | `maitokens.mspace.lk` |
+| Credential | `applicationId` + `password` in the **body** | one key in the `Authorization` **header** |
+| Key source | the application record | the mAI Tokens portal — a **different** key |
+| Failures | HTTP 200 always; branch on `statusCode` | real HTTP status codes; branch on the status, then `error.code` |
+| Success | `statusCode: "S1000"` (or `P1003` / `S1001`) | HTTP 2xx. There is no `statusCode` field |
+| Subject | a subscriber, `tel:947…` | no subscriber, no MSISDN, no operator |
+| Inbound | five callbacks you host | none. mAI Tokens never calls you |
+| Timeout | 15s | 60–120s |
+| Not-provisioned error | `E1309` | `INVALID_LLM_CONFIG` |
+
+**Keep two clients.** One shared HTTP helper applies exactly one of these conventions and is
+wrong for half the calls.
+
+**Auth:** `Authorization: app_<keyId>.<keyValue>` — verbatim, including `app_`. Not an OAuth
+bearer token: no `Bearer` prefix, no base64. From `MAI_TOKENS_API_KEY`, backend only. It spends a
+prepaid balance and has **no** *Allowed Host Address* list, so a leak works from anywhere until
+you rotate it.
+
+| Endpoint | Purpose | Variable |
+|---|---|---|
+| `POST /api/v1/chat/completions` | chat | `MAI_TOKENS_CHAT_COMPLETIONS_URL` |
+| `POST /api/v1/images/generations` | images | `MAI_TOKENS_IMAGE_GENERATIONS_URL` |
+
+**Chat models:** `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`,
+`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-fable-5`,
+`claude-opus-5`, `claude-sonnet-5`, `claude-sonnet-4-6`, `gpt-5.6-sol`, `gpt-5.6-terra`,
+`gpt-5.6-luna`, `gpt-4o-mini`, `gpt-5-nano`. **Image models:** `gpt-image-2`, `gpt-image-1.5`.
+`node tools/mspace.mjs mai models` says what each is for.
+
+**When you generate mAI Tokens code, always:**
+
+- Set `max_completion_tokens` on every chat call and keep `n` at 1 — it is the only ceiling on
+  what one request can cost.
+- Check `choices[0].finish_reason` before using the content: `length` means it is truncated.
+- Branch on `error.code`. The two `429`s differ — `RATE_LIMIT_EXCEEDED` clears within the
+  minute, `TOKEN_QUOTA_EXCEEDED` never will.
+- Retry `429`+`RATE_LIMIT_EXCEEDED` (honour `Retry-After`), `500`, `502`, `503` and transport
+  errors, capped with jitter. Never retry `400`/`401`/`403`/`404`/`402`. There is no idempotency
+  key, so a timed-out call may already have been billed: cap at two attempts.
+- Redact before the prompt: no MSISDN, no `subscriberId` (a masked value is still an identifier),
+  no OTP, no credential — not in `messages`, `prompt`, `user`, `safety_identifier` or
+  `prompt_cache_key`. Keep `store` false.
+- Never call a model inside a callback's response path. Acknowledge with `S1000` first, generate
+  out of band, deliver by MT SMS or on the next USSD screen.
+- Treat model output as untrusted input: never execute it, never interpolate it into SQL or a
+  shell, and length-check it before it becomes an SMS (160 GSM-7 characters per part, 70 for
+  Sinhala or Tamil — every part is billed).
+- Decode generated images to object storage. The response is base64, never a URL: do not log it
+  and do not store it as text.
+- Keep model ids in configuration, so a cheaper model can be swapped in without a deploy.

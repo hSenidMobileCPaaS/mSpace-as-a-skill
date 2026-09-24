@@ -1,7 +1,7 @@
 {
   "name": "mspace",
-  "version": "1.1.0",
-  "description": "Build correct mSpace integrations — SMS, USSD, Subscription, OTP, CaaS charging and LBS on Mobitel's Sri Lankan application platform.",
+  "version": "1.2.0",
+  "description": "Build correct mSpace integrations — SMS, USSD, Subscription, OTP, CaaS charging and LBS on Mobitel's Sri Lankan application platform, plus mAI Tokens, its AI gateway.",
   "author": {
     "name": "hSenid Mobile Solutions",
     "url": "https://www.hsenidmobile.com"

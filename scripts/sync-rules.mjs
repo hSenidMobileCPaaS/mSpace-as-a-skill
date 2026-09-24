@@ -35,7 +35,7 @@ const CURSOR = {
   path: ".cursor/rules/mspace.mdc",
   frontmatter: [
     "---",
-    "description: mSpace integration (SMS, USSD, Subscription, OTP, CaaS, LBS) — Mobitel, Sri Lanka",
+    "description: mSpace integration (SMS, USSD, Subscription, OTP, CaaS, LBS) and mAI Tokens, its AI gateway — Mobitel, Sri Lanka",
     "globs:",
     "alwaysApply: false",
     "---",

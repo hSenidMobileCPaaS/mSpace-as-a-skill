@@ -20,11 +20,28 @@ export const catalog = JSON.parse(
   readFileSync(join(repoRoot, "catalog", "mspace-api.json"), "utf8")
 );
 
+/**
+ * Every mAI Tokens endpoint, tagged so callers can tell it apart from a telco one.
+ *
+ * mAI Tokens is a different product behind the same brand: its own host, header
+ * credentials instead of body credentials, real HTTP status codes instead of the
+ * S1000 envelope, no subscriber and no callbacks. It lives in its own catalog
+ * branch for exactly that reason, and everything that walks the catalog has to
+ * know which half it is looking at before it applies a rule.
+ */
+export function maiServices() {
+  return (catalog.maiTokens?.services || []).map((s) => ({ ...s, kind: "service", family: "mai" }));
+}
+
+/** True for an entry that speaks mAI Tokens' conventions rather than the telco ones. */
+export const isMai = (entry) => entry?.family === "mai";
+
 /** Every service and callback in one list, tagged by kind. */
 export function allEntries() {
   return [
-    ...catalog.services.map((s) => ({ ...s, kind: "service" })),
-    ...catalog.callbacks.map((c) => ({ ...c, kind: "callback" })),
+    ...catalog.services.map((s) => ({ ...s, kind: "service", family: "telco" })),
+    ...catalog.callbacks.map((c) => ({ ...c, kind: "callback", family: "telco" })),
+    ...maiServices(),
   ];
 }
 
@@ -76,6 +93,46 @@ export function lookupStatusCode(code) {
     benignFor: entry.benignFor || [],
     affects: allEntries()
       .filter((e) => (e.statusCodes || []).includes(key))
+      .map((e) => e.id),
+  };
+}
+
+/**
+ * Decode an mAI Tokens failure — an HTTP status ("429") or a named code
+ * ("TOKEN_QUOTA_EXCEEDED") — into meaning, handling class and the fix.
+ *
+ * Separate from lookupStatusCode on purpose. An mAI Tokens 429 and an mSpace
+ * E1603 are both "transient", but they arrive on different channels and a
+ * lookup that silently accepted either would let a caller decode a telco code
+ * against the AI table and get a confident wrong answer.
+ */
+export function lookupMaiError(code) {
+  const key = String(code || "").toUpperCase().trim();
+  const table = catalog.maiTokens?.errors || {};
+  const entry = table[key];
+  if (!entry) {
+    return {
+      code: key,
+      known: false,
+      class: "unknown",
+      description:
+        "Not in the published mAI Tokens error list. Read error.code and error.message from the response body.",
+      retry: false,
+      action: "Log the full error object and escalate through the mAI Tokens portal if it persists.",
+      affects: [],
+    };
+  }
+  const cls = catalog.statusCodeClasses[entry.class] || {};
+  return {
+    code: key,
+    known: true,
+    http: entry.http,
+    class: entry.class,
+    description: entry.description,
+    retry: cls.retry ?? false,
+    action: entry.fix || cls.action,
+    affects: maiServices()
+      .filter((e) => (e.errorCodes || []).includes(key))
       .map((e) => e.id),
   };
 }
@@ -192,6 +249,18 @@ export function buildPayload(service, values = {}, options = {}) {
   const { credentials = {}, perRequest = "sample" } = options;
   const payload = {};
 
+  // mAI Tokens carries no credential in the body at all — its key travels in the
+  // Authorization header. Injecting applicationId and password here would fail
+  // with a 400 and hand the telco password to a different product's endpoint.
+  if (isMai(service)) {
+    for (const p of service.parameters || []) {
+      if (values[p.name] !== undefined) payload[p.name] = values[p.name];
+      else if (service.sampleRequest?.[p.name] !== undefined) payload[p.name] = service.sampleRequest[p.name];
+      else if (p.required) payload[p.name] = `<${p.name}>`;
+    }
+    return payload;
+  }
+
   for (const p of service.parameters || []) {
     if (p.name === "applicationId") {
       payload.applicationId = credentials.applicationId || "$MSPACE_APP_ID";
@@ -228,10 +297,125 @@ export function successCodesFor(entry) {
 }
 
 /**
+ * Validate an mAI Tokens payload.
+ *
+ * None of the telco rules apply here — there is no tel: address, no
+ * externalTrxId, no string-typed amount and no credential in the body — so this
+ * checks the mistakes that actually cost money or fail on this API: an
+ * unavailable model, an uncapped completion, a fan-out of choices nobody reads,
+ * and subscriber identity leaking into a prompt that leaves the trust boundary.
+ */
+function validateMaiPayload(entry, payload) {
+  const spec = entry.parameters || [];
+  const errors = [];
+  const warnings = [];
+  const known = new Set(spec.map((p) => p.name));
+
+  for (const p of spec) {
+    const value = payload?.[p.name];
+    if (p.required && (value === undefined || value === null || value === "")) {
+      errors.push(`Missing required field "${p.name}" — ${p.description}`);
+      continue;
+    }
+    if (value === undefined) continue;
+    if (typeof value === "string" && /^<.+>$/.test(value)) {
+      errors.push(`"${p.name}" is still the placeholder ${value}. Fill it in — this body is not ready to send.`);
+      continue;
+    }
+    if (p.enum && !p.enum.includes(String(value))) {
+      errors.push(`"${p.name}" must be one of ${p.enum.join(" | ")}, got ${JSON.stringify(value)}`);
+    }
+    if (p.type === "object[]" && !Array.isArray(value)) {
+      errors.push(`"${p.name}" must be an ARRAY, got ${typeof value}`);
+    }
+  }
+
+  const messages = payload?.messages;
+  if (Array.isArray(messages)) {
+    if (!messages.length) errors.push('"messages" is empty — there is no conversation to complete.');
+    const roles = new Set(["system", "developer", "user", "assistant", "tool"]);
+    messages.forEach((m, i) => {
+      if (!m || typeof m !== "object") {
+        errors.push(`messages[${i}] must be an object with a role and content.`);
+        return;
+      }
+      if (!roles.has(m.role)) {
+        errors.push(
+          `messages[${i}].role must be one of ${[...roles].join(" | ")}, got ${JSON.stringify(m.role)}`
+        );
+      }
+      const hasContent = m.content !== undefined && m.content !== null && m.content !== "";
+      if (!hasContent && !(m.role === "assistant" && m.tool_calls)) {
+        errors.push(`messages[${i}] has no content.`);
+      }
+      if (m.role === "tool" && !m.tool_call_id) {
+        errors.push(`messages[${i}] has role "tool" but no tool_call_id — the model cannot match it to its request.`);
+      }
+    });
+  }
+
+  const num = (name, min, max) => {
+    const v = payload?.[name];
+    if (v === undefined) return;
+    if (typeof v !== "number" || Number.isNaN(v)) errors.push(`"${name}" must be a number, got ${JSON.stringify(v)}`);
+    else if (v < min || v > max) errors.push(`"${name}" must be between ${min} and ${max}, got ${v}`);
+  };
+  num("temperature", 0, 2);
+  num("top_p", 0, 1);
+  num("frequency_penalty", -2, 2);
+  num("presence_penalty", -2, 2);
+  num("top_logprobs", 0, 20);
+  if (payload?.n !== undefined) {
+    const max = entry.id === "mai-image-generation" ? 10 : 128;
+    if (!Number.isInteger(payload.n) || payload.n < 1 || payload.n > max) {
+      errors.push(`"n" must be an integer between 1 and ${max}, got ${JSON.stringify(payload.n)}`);
+    } else if (payload.n > 1) {
+      warnings.push(`n=${payload.n} generates and BILLS ${payload.n} results. Leave it at 1 unless you use every one.`);
+    }
+  }
+  if (payload?.prompt !== undefined && String(payload.prompt).length > 32000) {
+    errors.push('"prompt" exceeds the 32000-character limit for the GPT Image models.');
+  }
+  if (payload?.background === "transparent" && payload?.output_format === "jpeg") {
+    warnings.push("background=transparent is discarded with output_format=jpeg. Use png or webp.");
+  }
+
+  if (entry.id === "mai-chat-completions" && payload?.max_completion_tokens === undefined) {
+    warnings.push(
+      "No max_completion_tokens — this request has no cost ceiling. Set one on every call; a runaway generation draws down the shared token balance and takes every AI feature down with a 402."
+    );
+  }
+  if (payload?.store === true) {
+    warnings.push("store=true keeps this conversation on the provider's side. Leave it false for anything carrying subscriber data.");
+  }
+
+  const identity = /\btel:|\b(?:94|0)7\d{8}\b|subscriberId|applicationId|APP_\d{6}/i;
+  for (const field of ["messages", "prompt", "safety_identifier", "user", "prompt_cache_key"]) {
+    if (payload?.[field] === undefined) continue;
+    if (identity.test(JSON.stringify(payload[field]))) {
+      errors.push(
+        `"${field}" looks like it carries subscriber or application identity. Prompts leave your trust boundary and reach a third-party model provider — redact MSISDNs, subscriberIds and credentials before the call.`
+      );
+    }
+  }
+
+  for (const key of Object.keys(payload || {})) {
+    if (!known.has(key)) warnings.push(`Unrecognised field "${key}" — it will be ignored.`);
+  }
+  if (entry.spendsTokens) {
+    warnings.push("This call spends real tokens from your mAI Tokens balance.");
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+/**
  * Validate a payload against a service or callback definition.
  * Catches the mistakes that actually happen, not just missing fields.
  */
 export function validatePayload(entry, payload) {
+  if (isMai(entry)) return validateMaiPayload(entry, payload);
+
   const spec = entry.parameters || entry.fields || [];
   const errors = [];
   const warnings = [];
@@ -385,6 +569,8 @@ export function validatePayload(entry, payload) {
  * next — rather than leaving each of those to be remembered.
  */
 export function readResponse(entry, body) {
+  if (isMai(entry)) return readMaiResponse(entry, body);
+
   const successCodes = successCodesFor(entry);
   const messageField = entry.responseMessageField || "statusDetail";
   const notes = [];
@@ -503,6 +689,96 @@ export function readResponse(entry, body) {
 }
 
 /**
+ * Read an mAI Tokens response body.
+ *
+ * There is no statusCode here: a body with an error object is a failure, and
+ * anything else came with a 2xx. The trap on the success side is a truncated
+ * answer — the request worked, the content is cut off mid-sentence.
+ */
+function readMaiResponse(entry, body) {
+  const base = { service: entry.id, name: entry.name, notes: [], problems: [], nextSteps: [] };
+
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    return {
+      ...base,
+      ok: false,
+      errorCode: null,
+      problems: ["The response is not a JSON object. mAI Tokens answers with a JSON body on success and on failure."],
+    };
+  }
+
+  if (body.error) {
+    const code = body.error.code || body.error.type || null;
+    const info = code ? lookupMaiError(code) : null;
+    const result = {
+      ...base,
+      ok: false,
+      errorCode: code,
+      errorClass: info?.class ?? null,
+      known: info?.known ?? false,
+      message: body.error.message ?? null,
+      param: body.error.param ?? null,
+      description: info?.description ?? null,
+    };
+    if (body.error.param) result.problems.push(`The offending field is "${body.error.param}".`);
+    if (info) {
+      result.nextSteps.push(info.action);
+      result.nextSteps.push(
+        info.retry === true
+          ? "Transient: retry with capped exponential backoff and jitter, honouring Retry-After."
+          : "Do not retry — it will fail identically. Fix the cause, and alert if it is a balance or quota code."
+      );
+    }
+    return result;
+  }
+
+  const result = { ...base, ok: true, errorCode: null, model: body.model ?? null, usage: body.usage ?? null };
+
+  if (entry.id === "mai-chat-completions") {
+    const choices = Array.isArray(body.choices) ? body.choices : [];
+    if (!choices.length) {
+      result.ok = false;
+      result.problems.push("No choices in the body — there is no answer to use.");
+    }
+    for (const choice of choices) {
+      const reason = choice?.finish_reason;
+      if (reason === "length") {
+        result.problems.push(
+          `choices[${choice.index ?? 0}] stopped on "length": the answer is cut off at max_completion_tokens. The request succeeded; the answer did not.`
+        );
+      } else if (reason === "tool_calls") {
+        result.nextSteps.push(
+          'The model asked for a tool. Append this message verbatim, run each tool call (validating its arguments as untrusted input), then send one role "tool" message per call.'
+        );
+      } else if (reason === "content_filter") {
+        result.problems.push("The answer was withheld by the content filter.");
+      }
+    }
+    result.message = choices[0]?.message?.content ?? null;
+    if (!result.problems.length && choices.length) {
+      result.nextSteps.push("Append choices[0].message to the history verbatim before the next turn.");
+    }
+  }
+
+  if (entry.id === "mai-image-generation") {
+    const data = Array.isArray(body.data) ? body.data : [];
+    if (!data.length || !data.every((d) => d?.b64_json)) {
+      result.ok = false;
+      result.problems.push("No b64_json image in data — there is nothing to decode.");
+    } else {
+      result.nextSteps.push(
+        `Decode each b64_json once and write the bytes to object storage as .${body.output_format || "png"}. Never log it or store it as text.`
+      );
+    }
+  }
+
+  if (result.usage?.total_tokens !== undefined) {
+    result.notes.push(`This call drew ${result.usage.total_tokens} tokens from the balance. Record it per call.`);
+  }
+  return result;
+}
+
+/**
  * Render a service call as a runnable curl command.
  *
  * The body goes in through an unquoted heredoc so that $MSPACE_APP_ID and
@@ -511,6 +787,21 @@ export function readResponse(entry, body) {
  * references/14-curl-reference.md, so the two paths cannot drift.
  */
 export function toCurl(service, payload, baseUrl) {
+  if (isMai(service)) {
+    // The key travels in a header and the body carries no credential, so the
+    // heredoc is quoted here: nothing inside it needs to expand, and quoting it
+    // stops a $ in a prompt from being eaten by the shell.
+    const auth = catalog.maiTokens.auth;
+    return [
+      `curl -sS -X POST '${urlFor(service, baseUrl)}' \\`,
+      `  --header 'Content-Type: application/json' \\`,
+      `  --header "${auth.header}: $${auth.envVar}" \\`,
+      `  --max-time 120 \\`,
+      `  --data @- <<'REQUEST'`,
+      JSON.stringify(payload, null, 2),
+      `REQUEST`,
+    ].join("\n");
+  }
   return [
     `curl -sS -X POST '${urlFor(service, baseUrl)}' \\`,
     `  --header 'Content-Type: application/json;charset=utf-8' \\`,
@@ -544,15 +835,49 @@ export function search(query, limit = 20) {
     const score = hit(code, 12) + hit(meta.description, 3);
     if (score) results.push({ type: "statusCode", id: code, name: code, summary: meta.description, score });
   }
-  for (const p of catalog.practices) {
+  for (const [code, meta] of Object.entries(catalog.maiTokens?.errors || {})) {
+    const score = hit(code, 12) + hit(meta.description, 3);
+    if (score) results.push({ type: "maiError", id: code, name: code, summary: meta.description, score });
+  }
+  for (const p of [...catalog.practices, ...(catalog.maiTokens?.practices || [])]) {
     const score = hit(p.id, 8) + hit(p.title, 6) + hit(p.detail, 2);
     if (score) results.push({ type: "practice", id: p.id, name: p.title, summary: p.detail, score });
+  }
+  for (const m of catalog.maiTokens?.models || []) {
+    const score = hit(m.id, 10) + hit(m.provider, 6) + hit(m.note, 2);
+    if (score) results.push({ type: "model", id: m.id, name: m.id, summary: `${m.provider} — ${m.note}`, score });
   }
   return results.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-/** Symptom signatures for the diagnose command. */
+/**
+ * Symptom signatures for the diagnose command.
+ *
+ * The mAI Tokens ones come first deliberately: "429" and "rate limit" mean
+ * something specific on the AI gateway and nothing at all on the telco APIs,
+ * and a symptom that mentions a model or a prompt is never an SMS problem.
+ */
 export const SIGNATURES = [
+  {
+    when: /\bmai\b|mai ?tokens|chat completion|prompt|llm|\bgpt|claude|gemini|token (quota|balance)/,
+    cause: "This is an mAI Tokens (AI gateway) call, not a telco call. It authenticates with an Authorization header, returns real HTTP status codes, and spends a token balance — none of the S1000 rules apply.",
+    fix: "Send Authorization: app_<keyId>.<keyValue> with no Bearer prefix, branch on the HTTP status rather than a statusCode field, and read error.code from the body. Full contract: references/15-mai-tokens.md.",
+  },
+  {
+    when: /\b401\b|unauthoriz|unauthenticat|invalid api key|bearer/,
+    cause: "The mAI Tokens key is missing, malformed, or wrapped in a Bearer prefix it must not have.",
+    fix: "The header value is the key verbatim: Authorization: app_<keyId>.<keyValue>. Do not prepend Bearer and do not base64-encode it. Confirm MAI_TOKENS_API_KEY actually reached the process — an unset variable sends an empty header.",
+  },
+  {
+    when: /\b(402|429)\b|quota|insufficient balance|rate ?limit/,
+    cause: "mAI Tokens quota: either the per-minute rate limit (RATE_LIMIT_EXCEEDED, which clears on its own) or the token balance (TOKEN_QUOTA_EXCEEDED / INSUFFICIENT_BALANCE, which does not).",
+    fix: "Read error.code, not just the status. Back off on RATE_LIMIT_EXCEEDED using the Retry-After header; alert and top up on the balance codes rather than retrying into a wall.",
+  },
+  {
+    when: /truncat|cut off|incomplete (answer|response)|stops mid/,
+    cause: 'The completion hit max_completion_tokens, so finish_reason is "length" and the content is cut off. The request succeeded; the answer is just unfinished.',
+    fix: "Check choices[0].finish_reason before using the content. Raise max_completion_tokens, or ask for a shorter answer in the prompt.",
+  },
   {
     when: /p1003|charge.*(not|never) (happen|complete)|charge.*otp|otp.*charg|charging.*otp/,
     cause: "CaaS charging on mSpace is two calls, not one. POST /caas/direct/debit only generates an OTP and answers P1003; the money moves when the subscriber's OTP is verified with POST /caas/otp/verify, and the final outcome arrives on the charging notification.",
@@ -634,6 +959,14 @@ export const SIGNATURES = [
 export function diagnose(symptom) {
   const codeMatch = String(symptom).match(/\b([SEP]\d{4})\b/i);
   if (codeMatch) return { matchedOn: "statusCode", ...lookupStatusCode(codeMatch[1]) };
+
+  // A named mAI Tokens code is unambiguous, so it resolves before any symptom match.
+  const maiNamed = String(symptom)
+    .toUpperCase()
+    .match(
+      /\b(PROJECT_NOT_FOUND|PROJECT_INACTIVE|INVALID_LLM_CONFIG|RATE_LIMIT_EXCEEDED|TOKEN_QUOTA_EXCEEDED|INSUFFICIENT_BALANCE|FORWARDING_FAILED)\b/
+    );
+  if (maiNamed) return { matchedOn: "maiError", ...lookupMaiError(maiNamed[1]) };
 
   const s = String(symptom).toLowerCase();
   const sig = SIGNATURES.find((x) => x.when.test(s));

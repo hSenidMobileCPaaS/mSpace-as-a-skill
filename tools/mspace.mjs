@@ -11,7 +11,7 @@
  * Commands:
  *   list [category] [--direction=outbound|inbound]   List services and callbacks
  *   show <id>                                        Full contract for one
- *   code <statusCode>                                Decode a status code
+ *   code <statusCode|httpStatus|MAI_CODE>            Decode a status or error code
  *   diagnose <symptom|code>                          Most likely cause + fix
  *   search <query>                                   Search everything
  *   curl <id> [key=value ...]                        Runnable request + definitions
@@ -20,6 +20,7 @@
  *   checklist                                        Go-live checklist
  *   reference <doc>                                  Print a reference doc
  *   platform                                         Base URLs, operator, conventions
+ *   mai [models|errors]                              The mAI Tokens (AI gateway) contract
  *   help
  */
 
@@ -31,7 +32,10 @@ import {
   coerceValues,
   diagnose,
   findEntry,
+  isMai,
+  lookupMaiError,
   lookupStatusCode,
+  maiServices,
   readReference,
   readResponse,
   search,
@@ -100,6 +104,7 @@ function cmdList() {
       endpoint: e.kind === "service" ? `POST ${e.absoluteUrl || e.path}` : `POST ${e.suggestedPath}`,
       summary: e.summary,
       movesMoney: e.movesMoney || undefined,
+      spendsTokens: e.spendsTokens || undefined,
     }));
 
   if (!entries.length) fail(`No services match "${category || direction}".`);
@@ -113,7 +118,7 @@ function cmdList() {
         console.log(bold(`  ${group.toUpperCase()}`));
       }
       const arrow = e.direction === "outbound" ? "→" : "←";
-      const money = e.movesMoney ? red("  $$ real money") : "";
+      const money = e.movesMoney ? red("  $$ real money") : e.spendsTokens ? red("  $$ spends tokens") : "";
       console.log(`    ${arrow} ${cyan(e.id.padEnd(28))} ${dim(e.endpoint)}${money}`);
       console.log(`      ${dim(e.summary)}`);
     }
@@ -136,6 +141,7 @@ function cmdShow() {
     ...entry,
     url: entry.kind === "service" ? urlFor(entry) : undefined,
     statusCodeDetail: (entry.statusCodes || []).map(lookupStatusCode),
+    errorCodeDetail: (entry.errorCodes || []).map(lookupMaiError),
   };
 
   out(data, (d) => {
@@ -149,6 +155,12 @@ function cmdShow() {
       console.log(`  ${bold("Dedupe key")}  ${d.dedupeKey}`);
     }
     if (d.movesMoney) console.log(`  ${red("⚠  This call moves real money.")}`);
+    if (d.spendsTokens) console.log(`  ${red("⚠  This call spends real tokens from your mAI Tokens balance.")}`);
+    if (isMai(d)) {
+      const auth = catalog.maiTokens.auth;
+      console.log(`  ${bold("Auth")}      ${auth.header}: ${auth.format}  ${dim(`(${auth.envVar})`)}`);
+      console.log(`  ${yellow("⚠  Failures arrive as real HTTP status codes. There is no statusCode field and no S1000.")}`);
+    }
 
     if (d.payloadPublished === false) console.log(`  ${yellow("!")} ${d.payloadNote}`);
 
@@ -171,7 +183,7 @@ function cmdShow() {
       }
     }
 
-    if (d.kind === "service") {
+    if (d.kind === "service" && !isMai(d)) {
       console.log(
         `\n  ${bold("Success")}  ${green(successCodesFor(d).join(" or "))}` +
           `   ${dim(`message in ${d.responseMessageField || "statusDetail"}`)}`
@@ -203,13 +215,40 @@ function cmdShow() {
         console.log(`    ${colour(s.code.padEnd(7))} ${dim(s.class.padEnd(14))} ${s.description}`);
       }
     }
+    if (d.errorCodeDetail?.length) {
+      console.log(`\n  ${bold("Errors")}  ${dim("HTTP status, then the code in error.code")}`);
+      for (const e of d.errorCodeDetail) {
+        const colour = CLASS_COLOR[e.class] || dim;
+        console.log(`    ${colour(e.code.padEnd(22))} ${dim(String(e.http).padEnd(5))} ${dim(e.class.padEnd(14))} ${e.description}`);
+      }
+    }
     console.log(`\n  ${dim(`Full guide: ${d.reference}`)}\n`);
   });
 }
 
 function cmdCode() {
   const code = rest[0];
-  if (!code) fail("usage: mspace code <statusCode>");
+  if (!code) fail("usage: mspace code <statusCode|httpStatus|MAI_CODE>");
+
+  // Telco codes are a letter and four digits; anything else that resolves in
+  // the mAI Tokens table is an AI gateway failure. Deciding by shape keeps
+  // `code 429` and `code E1603` from ever being answered from the wrong table.
+  const isTelcoShaped = /^[SEP]\d{4}$/i.test(String(code).trim());
+  if (!isTelcoShaped) {
+    const mai = lookupMaiError(code);
+    if (mai.known) {
+      return out({ source: "mai-tokens", ...mai }, (d) => {
+        const colour = CLASS_COLOR[d.class] || dim;
+        console.log(`\n  ${colour(bold(d.code))}  ${dim(`mAI Tokens · HTTP ${d.http} · ${d.class}`)}`);
+        console.log(`  ${d.description}\n`);
+        console.log(`  ${bold("Retry")}   ${d.retry ? green("yes, with backoff") : red("no")}`);
+        console.log(`  ${bold("Action")}  ${d.action}`);
+        if (d.affects.length) console.log(`  ${dim(`Seen on: ${d.affects.join(", ")}`)}`);
+        console.log(`\n  ${dim(catalog.maiTokens.reference)}\n`);
+      });
+    }
+  }
+
   const info = lookupStatusCode(code);
 
   out(info, (d) => {
@@ -233,7 +272,7 @@ function cmdDiagnose() {
 
   out(d, (r) => {
     console.log();
-    if (r.matchedOn === "statusCode") {
+    if (r.matchedOn === "statusCode" || r.matchedOn === "maiError") {
       const colour = CLASS_COLOR[r.class] || dim;
       console.log(`  ${colour(bold(r.code))}  ${r.description}\n`);
       console.log(`  ${bold("Fix")}  ${r.action}`);
@@ -319,7 +358,7 @@ function cmdCurl() {
 
   // Credentials are always placeholders here, so a value typed on the command
   // line is dropped rather than printed. Say so, or it looks like it was used.
-  for (const secret of ["applicationId", "password"]) {
+  for (const secret of isMai(entry) ? [] : ["applicationId", "password"]) {
     if (raw[secret] !== undefined) {
       validation.warnings.unshift(
         `${secret} was ignored — this command never prints a credential. Export MSPACE_${
@@ -330,9 +369,11 @@ function cmdCurl() {
   }
   const curl = toCurl(entry, payload);
 
+  const mai = isMai(entry);
   const data = {
     service: entry.id,
     name: entry.name,
+    maiTokens: mai || undefined,
     endpoint: `POST ${urlFor(entry)}`,
     envVar: entry.envVar,
     url: urlFor(entry),
@@ -340,18 +381,24 @@ function cmdCurl() {
     payload,
     curl,
     sampleResponse: entry.sampleResponse,
-    successCodes: successCodesFor(entry),
-    responseMessageField: entry.responseMessageField || "statusDetail",
+    successCodes: mai ? undefined : successCodesFor(entry),
+    responseMessageField: mai ? undefined : entry.responseMessageField || "statusDetail",
     responseHandling: entry.responseHandling,
     responseFields: entry.responseFields,
+    errorCodes: mai ? entry.errorCodes : undefined,
     validation,
     rules: entry.rules,
-    reference: "references/14-curl-reference.md",
+    reference: mai ? catalog.maiTokens.reference : "references/14-curl-reference.md",
   };
 
   out(data, (d) => {
     console.log(`\n  ${bold(d.name)}  ${dim(d.endpoint)}`);
-    console.log(`  ${dim(`endpoint variable ${d.envVar}`)}\n`);
+    console.log(`  ${dim(`endpoint variable ${d.envVar}`)}`);
+    if (d.maiTokens) {
+      const auth = catalog.maiTokens.auth;
+      console.log(`  ${dim(`auth ${auth.header}: ${auth.format} — from ${auth.envVar}, no Bearer prefix`)}`);
+    }
+    console.log();
 
     console.log(`  ${bold("Parameters")}`);
     for (const p of d.parameters) {
@@ -366,10 +413,10 @@ function cmdCurl() {
     console.log(indent(d.curl, 2));
 
     if (d.sampleResponse) {
-      const success = d.successCodes.join(" or ");
-      console.log(
-        `\n  ${bold("Response")}  ${dim(`HTTP 200 — success is statusCode ${success}, nothing else`)}\n`
-      );
+      const note = d.maiTokens
+        ? "HTTP 200 — failures arrive as real HTTP status codes with an error object"
+        : `HTTP 200 — success is statusCode ${d.successCodes.join(" or ")}, nothing else`;
+      console.log(`\n  ${bold("Response")}  ${dim(note)}\n`);
       console.log(indent(JSON.stringify(d.sampleResponse, null, 2), 4));
     }
     if (d.responseFields?.length) {
@@ -390,7 +437,13 @@ function cmdCurl() {
       d.validation.errors.forEach((e) => console.log(`    ${red("✗")} ${e}`));
     }
     d.validation.warnings.forEach((w) => console.log(`  ${yellow("!")} ${w}`));
-    console.log(`\n  ${dim("Credentials are env placeholders — export them, do not paste them in.")}`);
+    console.log(
+      `\n  ${dim(
+        d.maiTokens
+          ? `The key is an env placeholder — export ${catalog.maiTokens.auth.envVar}, do not paste it in.`
+          : "Credentials are env placeholders — export them, do not paste them in."
+      )}`
+    );
     console.log(`  ${dim(`Every endpoint in this form: ${d.reference}`)}\n`);
   });
 }
@@ -423,6 +476,26 @@ function cmdResponse() {
 
   const body = readJsonArgument(source, "Response");
   const result = readResponse(entry, body);
+
+  if (isMai(entry)) {
+    out(result, (d) => {
+      console.log();
+      const verdict = d.ok ? green("✓ success") : red(`✗ failure  ${d.errorCode ?? ""}`);
+      console.log(`  ${verdict}  ${dim(`against ${bold(d.service)}`)}`);
+      if (d.model) console.log(`  ${bold("Model")}    ${d.model}`);
+      if (d.message) console.log(`  ${bold("Message")}  ${String(d.message).slice(0, 200)}`);
+      if (!d.ok && d.description) console.log(`  ${dim(d.description)}`);
+      d.problems.forEach((p) => console.log(`\n  ${red("✗")} ${p}`));
+      d.notes.forEach((n) => console.log(`\n  ${yellow("!")} ${n}`));
+      if (d.nextSteps.length) {
+        console.log(`\n  ${bold("Next")}`);
+        d.nextSteps.forEach((x) => console.log(`    ${dim("·")} ${x}`));
+      }
+      console.log();
+    });
+    if (!result.ok) process.exitCode = 1;
+    return;
+  }
 
   out(result, (d) => {
     console.log();
@@ -513,7 +586,7 @@ const REFERENCE_DOCS = [
   "01-getting-started", "02-sms", "03-ussd", "04-subscription", "05-otp",
   "06-caas", "07-lbs", "08-callbacks", "09-status-codes",
   "10-security-best-practices", "11-production-checklist", "12-any-stack",
-  "13-implementation-playbook", "14-curl-reference",
+  "13-implementation-playbook", "14-curl-reference", "15-mai-tokens",
 ];
 
 function cmdReference() {
@@ -568,6 +641,93 @@ function cmdPlatform() {
   });
 }
 
+/**
+ * The mAI Tokens contract in one screen.
+ *
+ * It gets its own command rather than being folded into `platform` because the
+ * two products agree on almost nothing: different host, different credential,
+ * different failure envelope, no subscriber. Anyone who reads `platform` and
+ * assumes it also describes the AI gateway writes a broken client.
+ */
+function cmdMai() {
+  const m = catalog.maiTokens;
+  const topic = (rest[0] || "").toLowerCase();
+
+  if (topic === "models") {
+    return out({ models: m.models }, (d) => {
+      console.log(`\n  ${bold("mAI Tokens models")}\n`);
+      for (const x of d.models) {
+        console.log(`    ${cyan(x.id.padEnd(24))} ${dim(x.provider.padEnd(10))} ${dim(x.endpoint)}`);
+        console.log(`      ${dim(x.note)}`);
+      }
+      console.log();
+    });
+  }
+
+  if (topic === "errors") {
+    const errors = Object.keys(m.errors).map(lookupMaiError);
+    return out({ errors }, (d) => {
+      console.log(`\n  ${bold("mAI Tokens errors")}  ${dim("HTTP status, then the code in error.code")}\n`);
+      for (const e of d.errors) {
+        const colour = CLASS_COLOR[e.class] || dim;
+        console.log(`    ${colour(e.code.padEnd(22))} ${dim(String(e.http).padEnd(5))} ${dim(e.class.padEnd(14))} ${e.description}`);
+        console.log(`      ${dim(e.action)}`);
+      }
+      console.log(`\n  ${dim(`mspace code <CODE>  ·  ${m.reference}`)}\n`);
+    });
+  }
+
+  const data = {
+    name: m.name,
+    summary: m.summary,
+    baseUrl: m.baseUrl,
+    portal: m.portal,
+    auth: m.auth,
+    models: m.models,
+    rateLimits: m.rateLimits,
+    differsFromTelco: m.differsFromTelco,
+    services: maiServices().map((x) => ({
+      id: x.id,
+      name: x.name,
+      endpoint: `POST ${urlFor(x)}`,
+      envVar: x.envVar,
+      summary: x.summary,
+    })),
+    practices: m.practices,
+    statusPages: m.statusPages,
+    reference: m.reference,
+  };
+
+  out(data, (d) => {
+    console.log(`\n  ${bold(d.name)} — ${dim(d.baseUrl)}`);
+    console.log(`  ${d.summary}\n`);
+
+    console.log(`  ${bold("Auth")}      ${d.auth.header}: ${cyan(d.auth.format)}   ${dim(`from ${d.auth.envVar}`)}`);
+    console.log(`  ${dim(`            ${d.auth.note}`)}`);
+    console.log(`  ${bold("Key from")}  ${d.auth.issuedBy}\n`);
+
+    console.log(`  ${bold("Endpoints")}`);
+    for (const x of d.services) {
+      console.log(`    ${cyan(x.id.padEnd(26))} ${dim(x.endpoint)}`);
+      console.log(`      ${dim(x.summary)}`);
+    }
+
+    console.log(`\n  ${bold("Models")}`);
+    for (const x of d.models) console.log(`    ${cyan(x.id.padEnd(24))} ${dim(`${x.provider.padEnd(10)} ${x.endpoint}`)}`);
+
+    console.log(`\n  ${bold("Rate limits")}  ${dim(d.rateLimits.reset)} ${dim(d.rateLimits.onExceed)}`);
+
+    console.log(`\n  ${red(bold("Not the telco platform"))}`);
+    d.differsFromTelco.forEach((x) => console.log(`    ${yellow("!")} ${x}`));
+
+    console.log(`\n  ${bold("Rules")}`);
+    d.practices.forEach((x) => console.log(`    ${x.severity === "critical" ? red("!") : yellow("!")} ${x.title} — ${dim(x.detail)}`));
+
+    console.log(`\n  ${dim("mspace show mai-chat-completions  ·  mspace mai models  ·  mspace mai errors")}`);
+    console.log(`  ${dim(`Full guide: ${d.reference}`)}\n`);
+  });
+}
+
 function cmdHelp() {
   console.log(`
   ${bold("mspace")} — offline reference for the mSpace API ${dim(`(catalog v${catalog.catalogVersion})`)}
@@ -580,6 +740,8 @@ function cmdHelp() {
     search <query>                                   Search everything
     show <id>                                        Full contract for one service
     platform                                         Base URL, operator, conventions
+    mai [models|errors]                              The mAI Tokens AI gateway: auth,
+                                                     models, endpoints, errors
 
   ${bold("BUILD")}
     curl <id> [key=value ...]                        Runnable request + parameter and
@@ -596,7 +758,8 @@ function cmdHelp() {
     externalTrxId and action are strings on the wire. requestPage is the one integer.
 
   ${bold("DEBUG")}
-    code <statusCode>                                Decode a status code
+    code <statusCode|httpStatus|MAI_CODE>            Decode a telco status code or an
+                                                     mAI Tokens error
     diagnose "<symptom>"                             Most likely cause and fix
     response <id> '<the body you got>'               Success or failure, per endpoint,
                                                      and what to do with it next
@@ -619,6 +782,9 @@ function cmdHelp() {
     ${dim("$")} node tools/mspace.mjs response caas-otp-generation '{"statusCode":"P1003"}'
     ${dim("$")} node tools/mspace.mjs show subscription-notification
     ${dim("$")} node tools/mspace.mjs reference 14-curl-reference
+    ${dim("$")} node tools/mspace.mjs mai
+    ${dim("$")} node tools/mspace.mjs curl mai-chat-completions model=claude-sonnet-5
+    ${dim("$")} node tools/mspace.mjs code TOKEN_QUOTA_EXCEEDED
 
   ${dim("Add --json to any command for machine-readable output.")}
   ${dim("Offline and read-only: no network calls, and it never sees your credentials.")}
@@ -655,6 +821,8 @@ const COMMANDS = {
   docs: cmdReference,
   platform: cmdPlatform,
   info: cmdPlatform,
+  mai: cmdMai,
+  ai: cmdMai,
   help: cmdHelp,
 };
 

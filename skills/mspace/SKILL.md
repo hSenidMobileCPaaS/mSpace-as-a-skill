@@ -1,6 +1,6 @@
 ---
 name: mspace
-description: Build and integrate mSpace (Mobitel's Sri Lankan application platform) services — SMS, USSD, Subscription (register, unregister, status, base size, charging info, subscriber list), OTP, CaaS charging (OTP-authorised mobile-account debit) and LBS. Use whenever the user mentions mSpace, Inzpire, Xpand, api.mspace.lk, MSISDN/`tel:` addressing, short code and keyword routing, USSD menus, subscriber base size, mobile-account charging, or telco SMS/USSD in Sri Lanka.
+description: Build and integrate mSpace (Mobitel's Sri Lankan application platform) services — SMS, USSD, Subscription (register, unregister, status, base size, charging info, subscriber list), OTP, CaaS charging (OTP-authorised mobile-account debit) and LBS. Use whenever the user mentions mSpace, Inzpire, Xpand, api.mspace.lk, MSISDN/`tel:` addressing, short code and keyword routing, USSD menus, subscriber base size, mobile-account charging, telco SMS/USSD in Sri Lanka, or mAI Tokens/maitokens.mspace.lk, mSpace's AI gateway.
 ---
 
 # mSpace
@@ -11,6 +11,12 @@ lifecycle, mobile-account charging, OTP verification and location as JSON-over-H
 Two tracks: **Inzpire** (the API track — this skill) and **Xpand** (no-code Contact, Vote, Alert
 and Scheduled Messages applications). If the requirement is fully covered by an Xpand template,
 say so rather than building an integration.
+
+mSpace also runs **mAI Tokens**, an AI gateway (chat completions on Claude, Gemini and GPT
+models, plus image generation) on its own host, `maitokens.mspace.lk`. It shares the brand and
+nothing else — header credentials, real HTTP status codes, no subscriber, no callbacks. For
+anything AI-shaped go to the `mspace-mai` skill or `references/15-mai-tokens.md`, and do **not**
+apply the rules below to it.
 
 ## The six Inzpire APIs
 
@@ -41,6 +47,7 @@ node tools/mspace.mjs validate <id> '<json>'        # check a body before you se
 node tools/mspace.mjs response <id> '<json>'        # read the body that came back
 node tools/mspace.mjs code <statusCode>
 node tools/mspace.mjs platform                      # base URL, tracks, conventions
+node tools/mspace.mjs mai                           # the AI gateway, which follows none of this
 ```
 
 **`references/14-curl-reference.md` is where every call comes from** — every endpoint as a runnable
@@ -99,10 +106,11 @@ language-neutrally, with an acceptance checklist for stacks with no template.
 
 ## Where the detail lives
 
-`references/01-getting-started.md` through `14-curl-reference.md`, and the per-language
+`references/01-getting-started.md` through `15-mai-tokens.md`, and the per-language
 implementations in `templates/`. Read the reference for the API you are building against before
 writing code — one document per Inzpire API, then callbacks, status codes, security, the go-live
-checklist, the language-neutral spec, the playbook and the curl reference.
+checklist, the language-neutral spec, the playbook, the curl reference and the mAI Tokens
+gateway.
 
 No provisioned application yet? The mSpace developer bundle ships a local simulator at
 `http://localhost:10001/` — point the `MSPACE_*_URL` variables at it and the whole integration
@@ -112,4 +120,4 @@ Taking a project from nothing to production — or adding mSpace to an applicati
 users — is `references/13-implementation-playbook.md`.
 
 Related skills: `mspace-scaffold`, `mspace-callbacks`, `mspace-review`, `mspace-debug`,
-`mspace-golive`.
+`mspace-golive`, `mspace-mai`.

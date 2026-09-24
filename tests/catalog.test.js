@@ -12,7 +12,10 @@ import {
   coerceValues,
   diagnose,
   findEntry,
+  isMai,
+  lookupMaiError,
   lookupStatusCode,
+  maiServices,
   readResponse,
   repoRoot,
   search,
@@ -61,7 +64,12 @@ test("every service has a unique id, path, parameters and a sample", () => {
   }
 });
 
-test("every outbound service requires applicationId and password", () => {
+/**
+ * catalog.services is the telco half only. mAI Tokens carries no body
+ * credentials at all — its key is a header — which is exactly why it lives in
+ * its own catalog branch rather than being appended here.
+ */
+test("every outbound telco service requires applicationId and password", () => {
   for (const s of catalog.services) {
     const names = s.parameters.map((p) => p.name);
     assert.ok(names.includes("applicationId"), `${s.id} missing applicationId`);
@@ -266,6 +274,319 @@ test("no real credential-shaped string appears in the catalog", () => {
   const raw = readFileSync(join(repoRoot, "catalog", "mspace-api.json"), "utf8");
   const hexSecret = /"password"\s*:\s*"[0-9a-f]{16,}"/i;
   assert.equal(hexSecret.test(raw), false, "catalog contains a credential-shaped password value");
+});
+
+/* ── mAI Tokens ──────────────────────────────────────────────────────────── */
+
+/**
+ * mAI Tokens shares the brand and nothing else: its own host, header
+ * credentials, real HTTP status codes, no subscriber, no callbacks. Every test
+ * here guards a place where a telco assumption leaking into the AI path would
+ * produce a request that fails quietly or, worse, sends the wrong product's
+ * secret.
+ */
+test("the mAI Tokens branch declares a header credential, not body credentials", () => {
+  const auth = catalog.maiTokens.auth;
+  assert.equal(auth.type, "header");
+  assert.equal(auth.header, "Authorization");
+  assert.equal(auth.envVar, "MAI_TOKENS_API_KEY");
+  assert.match(auth.format, /^app_/);
+  assert.match(auth.note, /not an OAuth bearer token/i);
+});
+
+test("mAI Tokens is on its own host, with both published endpoints", () => {
+  assert.equal(catalog.maiTokens.baseUrl, "https://maitokens.mspace.lk/api");
+  assert.deepEqual(
+    maiServices().map((s) => urlFor(s)).sort(),
+    [
+      "https://maitokens.mspace.lk/api/v1/chat/completions",
+      "https://maitokens.mspace.lk/api/v1/images/generations",
+    ]
+  );
+});
+
+test("every mAI Tokens service is fully specified and tagged as its own family", () => {
+  const services = maiServices();
+  assert.ok(services.length >= 2, "expected at least chat and image endpoints");
+  const ids = new Set();
+  for (const s of services) {
+    assert.ok(!ids.has(s.id), `duplicate mAI Tokens service id ${s.id}`);
+    ids.add(s.id);
+    assert.ok(isMai(s), `${s.id} is not tagged family: "mai"`);
+    assert.equal(s.method, "POST");
+    assert.ok(s.absoluteUrl?.startsWith(catalog.maiTokens.baseUrl), `${s.id} is not on the mAI Tokens host`);
+    assert.ok(s.envVar?.startsWith("MAI_TOKENS_"), `${s.id} must not share the MSPACE_ prefix`);
+    assert.ok(s.parameters?.length, `${s.id} has no parameters`);
+    assert.ok(s.sampleRequest && s.sampleResponse, `${s.id} has no sample`);
+    assert.ok(s.errorCodes?.length, `${s.id} documents no failures`);
+
+    const names = s.parameters.map((p) => p.name);
+    for (const forbidden of ["applicationId", "password"]) {
+      assert.ok(!names.includes(forbidden), `${s.id} must not take ${forbidden} in the body`);
+    }
+  }
+});
+
+test("every published model is offered on the endpoint it belongs to", () => {
+  const chat = findEntry("mai-chat-completions").parameters.find((p) => p.name === "model").enum;
+  const image = findEntry("mai-image-generation").parameters.find((p) => p.name === "model").enum;
+  assert.deepEqual(chat, [
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.1-pro-preview",
+    "claude-fable-5",
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-sonnet-4-6",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "gpt-4o-mini",
+    "gpt-5-nano",
+  ]);
+  assert.deepEqual(image, ["gpt-image-2", "gpt-image-1.5"]);
+
+  // The model list and the endpoint enums are one fact recorded twice.
+  for (const m of catalog.maiTokens.models) {
+    const offered = m.endpoint === "mai-image-generation" ? image : chat;
+    assert.ok(offered.includes(m.id), `${m.id} is listed but not accepted by ${m.endpoint}`);
+  }
+  assert.equal(catalog.maiTokens.models.length, chat.length + image.length);
+});
+
+test("every mAI Tokens error code resolves with a known handling class", () => {
+  const classes = new Set(Object.keys(catalog.statusCodeClasses));
+  for (const s of maiServices()) {
+    for (const code of s.errorCodes) {
+      const info = lookupMaiError(code);
+      assert.equal(info.known, true, `${s.id} references unknown mAI Tokens error ${code}`);
+      assert.ok(classes.has(info.class), `${code} has unknown class "${info.class}"`);
+      assert.ok(info.http >= 400, `${code} has no HTTP status`);
+      assert.ok(info.action, `${code} has no fix`);
+    }
+  }
+});
+
+test("the two 429s are classified differently, because only one clears on its own", () => {
+  assert.equal(lookupMaiError("RATE_LIMIT_EXCEEDED").retry, true);
+  assert.equal(lookupMaiError("TOKEN_QUOTA_EXCEEDED").retry, false);
+  assert.equal(lookupMaiError("TOKEN_QUOTA_EXCEEDED").class, "configuration");
+});
+
+test("an mAI Tokens code and a telco code never resolve against each other's table", () => {
+  assert.equal(lookupMaiError("E1303").known, false);
+  assert.equal(lookupStatusCode("TOKEN_QUOTA_EXCEEDED").known, false);
+});
+
+test("mAI Tokens services resolve by id and by intent", () => {
+  assert.equal(findEntry("mai-chat-completions").id, "mai-chat-completions");
+  assert.equal(findEntry("chat").id, "mai-chat-completions");
+  assert.ok(search("image generation").some((r) => r.id === "mai-image-generation"));
+  assert.ok(search("claude").some((r) => r.id === "claude-opus-5"));
+  assert.ok(search("gemini-3.7").some((r) => r.id === "gemini-3.7-flash"));
+});
+
+test("an mAI Tokens request carries no body credential and an Authorization header", () => {
+  const chat = findEntry("mai-chat-completions");
+  const payload = buildPayload(chat, {});
+  assert.equal(payload.applicationId, undefined, "the telco applicationId leaked into an mAI Tokens body");
+  assert.equal(payload.password, undefined, "the telco password leaked into an mAI Tokens body");
+
+  const curl = toCurl(chat, payload);
+  assert.match(curl, /--header "Authorization: \$MAI_TOKENS_API_KEY"/);
+  assert.doesNotMatch(curl, /MSPACE_PASSWORD/);
+  assert.doesNotMatch(curl, /Bearer/);
+  // Quoted heredoc: nothing in a prompt should be expanded by the shell.
+  assert.match(curl, /--data @- <<'REQUEST'/);
+  assert.match(curl, /--max-time 120/);
+});
+
+test("mAI Tokens validation catches an unavailable model and a malformed conversation", () => {
+  const chat = findEntry("mai-chat-completions");
+
+  const badModel = validatePayload(chat, { model: "gpt-5-turbo", messages: [{ role: "user", content: "hi" }] });
+  assert.equal(badModel.valid, false);
+  assert.ok(badModel.errors.some((e) => e.includes("must be one of")));
+
+  // The display name is not the model id.
+  const displayName = validatePayload(chat, { model: "Claude Opus 5", messages: [{ role: "user", content: "hi" }] });
+  assert.equal(displayName.valid, false);
+
+  const badRole = validatePayload(chat, { model: "gpt-4o-mini", messages: [{ role: "human", content: "hi" }] });
+  assert.equal(badRole.valid, false);
+  assert.ok(badRole.errors.some((e) => e.includes("role")));
+
+  const noToolId = validatePayload(chat, {
+    model: "gpt-4o-mini",
+    messages: [{ role: "tool", content: "42" }],
+  });
+  assert.equal(noToolId.valid, false);
+  assert.ok(noToolId.errors.some((e) => e.includes("tool_call_id")));
+
+  const badTemp = validatePayload(chat, {
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: "hi" }],
+    temperature: 3,
+  });
+  assert.equal(badTemp.valid, false);
+  assert.ok(badTemp.errors.some((e) => e.includes("between 0 and 2")));
+
+  const image = findEntry("mai-image-generation");
+  const chatModelForImage = validatePayload(image, { model: "gpt-4o-mini", prompt: "a red apple" });
+  assert.equal(chatModelForImage.valid, false, "a chat model must not validate on the image endpoint");
+});
+
+/**
+ * The expensive mistake: a prompt built by string-interpolating a subscriber
+ * address. It leaves the trust boundary and reaches a third-party provider, and
+ * nothing downstream can pull it back.
+ */
+test("mAI Tokens validation refuses a prompt carrying subscriber identity", () => {
+  const chat = findEntry("mai-chat-completions");
+  const leaked = validatePayload(chat, {
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: "Summarise the account for tel:94702725777" }],
+    max_completion_tokens: 200,
+  });
+  assert.equal(leaked.valid, false);
+  assert.ok(leaked.errors.some((e) => e.includes("trust boundary")));
+
+  const image = findEntry("mai-image-generation");
+  const leakedUser = validatePayload(image, { prompt: "a red apple", user: "tel:94702725777" });
+  assert.equal(leakedUser.valid, false);
+});
+
+test("mAI Tokens validation warns about an uncapped call and about billed fan-out", () => {
+  const chat = findEntry("mai-chat-completions");
+  const uncapped = validatePayload(chat, {
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: "hi" }],
+    n: 4,
+  });
+  assert.equal(uncapped.valid, true, uncapped.errors.join("; "));
+  assert.ok(uncapped.warnings.some((w) => w.includes("max_completion_tokens")));
+  assert.ok(uncapped.warnings.some((w) => w.includes("BILLS")));
+  assert.ok(uncapped.warnings.some((w) => w.includes("spends real tokens")));
+});
+
+test("every documented mAI Tokens sample validates against its own spec", () => {
+  for (const s of maiServices()) {
+    const result = validatePayload(s, s.sampleRequest);
+    assert.equal(result.valid, true, `${s.id} sample is invalid: ${result.errors.join("; ")}`);
+  }
+});
+
+test("an mAI Tokens response is read by its HTTP-shaped body, not by statusCode", () => {
+  const chat = findEntry("mai-chat-completions");
+  const good = readResponse(chat, chat.sampleResponse);
+  assert.equal(good.ok, true);
+  assert.equal(good.message, chat.sampleResponse.choices[0].message.content);
+
+  const truncated = readResponse(chat, {
+    ...chat.sampleResponse,
+    choices: [{ ...chat.sampleResponse.choices[0], finish_reason: "length" }],
+  });
+  assert.ok(truncated.problems.some((p) => p.includes("cut off")));
+
+  const quota = readResponse(chat, { error: { code: "TOKEN_QUOTA_EXCEEDED", message: "quota" } });
+  assert.equal(quota.ok, false);
+  assert.equal(quota.errorClass, "configuration");
+  assert.ok(quota.nextSteps.some((s) => s.includes("Do not retry")));
+
+  const image = findEntry("mai-image-generation");
+  assert.equal(readResponse(image, image.sampleResponse).ok, true);
+});
+
+test("diagnose routes mAI Tokens symptoms away from the telco signatures", () => {
+  assert.equal(diagnose("TOKEN_QUOTA_EXCEEDED").matchedOn, "maiError");
+  assert.match(diagnose("mai tokens returns 401").fix, /no Bearer prefix/);
+  assert.match(diagnose("the answer is truncated").fix, /finish_reason/);
+  // …without capturing the telco ones.
+  assert.equal(diagnose("callbacks never arrive").matchedOn, "symptom");
+  assert.equal(diagnose("E1303").code, "E1303");
+});
+
+test("the mAI Tokens reference document states the conventions that differ", () => {
+  const doc = readFileSync(join(repoRoot, "references", "15-mai-tokens.md"), "utf8");
+  for (const fact of [
+    "app_<keyId>.<keyValue>",
+    "https://maitokens.mspace.lk/api/v1/chat/completions",
+    "https://maitokens.mspace.lk/api/v1/images/generations",
+    "MAI_TOKENS_API_KEY",
+    "finish_reason",
+    "max_completion_tokens",
+    "TOKEN_QUOTA_EXCEEDED",
+    ...catalog.maiTokens.models.map((m) => m.id),
+  ]) {
+    assert.ok(doc.includes(fact), `15-mai-tokens.md does not document ${fact}`);
+  }
+  // The two inversions that break a shared client.
+  assert.match(doc, /no `?Bearer`?/i);
+  assert.match(doc, /There is no `statusCode` field/);
+});
+
+/**
+ * The mSpace skill documents mAI Tokens as its own product. The gateway it is
+ * built on is published elsewhere under other names, and none of those belong
+ * in this repository.
+ */
+test("no other brand's name for the AI gateway appears in the skill", () => {
+  const skipDirs = new Set([".git", "node_modules"]);
+  // Spelled backwards so this file does not match its own scan.
+  const words = ["ia? inmo","tramaedi", "orpaedi"].map((w) => [...w].reverse().join(""));
+  const foreign = new RegExp(words.join("|"), "i");
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!skipDirs.has(entry.name)) walk(path);
+        continue;
+      }
+      let content;
+      try {
+        content = readFileSync(path, "utf8");
+      } catch {
+        continue;
+      }
+      if (foreign.test(content)) offenders.push(path.replace(repoRoot, "."));
+    }
+  };
+  walk(repoRoot);
+  assert.deepEqual(offenders, [], `foreign brand names found in:\n${offenders.join("\n")}`);
+});
+
+test("no mAI Tokens key-shaped string is committed", () => {
+  // A real key is app_ + a hex keyId + "." + a long hex keyValue.
+  const keyShaped = /app_[0-9a-f]{6,}\.[0-9a-f]{16,}/;
+  const skipDirs = new Set([".git", "node_modules"]);
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!skipDirs.has(entry.name)) walk(path);
+        continue;
+      }
+      let content;
+      try {
+        content = readFileSync(path, "utf8");
+      } catch {
+        continue;
+      }
+      if (keyShaped.test(content)) offenders.push(path.replace(repoRoot, "."));
+    }
+  };
+  walk(repoRoot);
+  assert.deepEqual(
+    offenders,
+    [],
+    `mAI Tokens key-shaped strings found:\n${offenders.join("\n")}\n` +
+      `Rotate it in the mAI Tokens portal before anything else.`
+  );
 });
 
 /* ── Lookup ──────────────────────────────────────────────────────────────── */
@@ -785,9 +1106,9 @@ test("diagnose degrades to search when nothing matches", () => {
 
 /* ── Repo consistency ────────────────────────────────────────────────────── */
 
-test("all fourteen reference documents exist", () => {
+test("all fifteen reference documents exist", () => {
   const files = readdirSync(join(repoRoot, "references")).filter((f) => f.endsWith(".md"));
-  assert.equal(files.length, 14, `expected 14 reference docs, found ${files.length}`);
+  assert.equal(files.length, 15, `expected 15 reference docs, found ${files.length}`);
 });
 
 /**
@@ -803,7 +1124,9 @@ test("every published Inzpire API is declared and documented", () => {
     ["SMS API", "USSD API", "Subscription API", "OTP API", "CaaS API", "LBS API"]
   );
 
-  const categories = new Set(allEntries().map((e) => e.category));
+  // mAI Tokens is a separate product, not a seventh Inzpire API.
+  const telco = allEntries().filter((e) => !isMai(e));
+  const categories = new Set(telco.map((e) => e.category));
   for (const api of apis) {
     assert.ok(api.summary?.length > 40, `${api.name} has no summary`);
     assert.ok(
@@ -822,7 +1145,7 @@ test("every published Inzpire API is declared and documented", () => {
 
   // Nothing may be in the catalog that no declared API accounts for.
   const declared = new Set(apis.map((a) => a.category));
-  for (const entry of allEntries()) {
+  for (const entry of telco) {
     assert.ok(
       declared.has(entry.category),
       `${entry.id} is in category "${entry.category}", which no Inzpire API declares`
@@ -940,6 +1263,20 @@ test("the curl reference documents every endpoint, parameter and response field"
     }
   }
 
+  for (const service of maiServices()) {
+    if (!doc.includes(`POST ${urlFor(service)}`)) missing.push(`endpoint ${urlFor(service)}`);
+    if (!doc.includes(`curl -sS -X POST "$${service.envVar}"`)) {
+      missing.push(`runnable request for ${service.id}`);
+    }
+    for (const p of service.parameters) {
+      if (!doc.includes(`\`${p.name}\``)) missing.push(`${service.id}.${p.name}`);
+      if (!documents(p.description)) missing.push(`definition of ${service.id}.${p.name}`);
+    }
+    for (const f of service.responseFields || []) {
+      if (!documents(f.description)) missing.push(`response field ${service.id}.${f.name}`);
+    }
+  }
+
   assert.deepEqual(missing, [], `curl reference is missing:\n${missing.join("\n")}`);
 });
 
@@ -981,6 +1318,11 @@ test("the env example exposes only credentials and per-service endpoints", () =>
     "MSPACE_APP_ID",
     "MSPACE_PASSWORD",
     ...catalog.services.map((s) => s.envVar),
+    // mAI Tokens is a separate product with a separate key, so it gets its own
+    // prefix. A shared MSPACE_ variable would invite one client to pick up the
+    // other product's secret.
+    catalog.maiTokens.auth.envVar,
+    ...maiServices().map((s) => s.envVar),
   ]);
 
   const unexpected = declared.filter((v) => !allowed.has(v));
@@ -993,7 +1335,7 @@ test("the env example exposes only credentials and per-service endpoints", () =>
 
 test("every catalog endpoint variable appears in the env example", () => {
   const example = readFileSync(join(repoRoot, "templates", ".env.example"), "utf8");
-  for (const service of catalog.services) {
+  for (const service of [...catalog.services, ...maiServices()]) {
     assert.ok(
       example.includes(`${service.envVar}=`),
       `.env.example does not list ${service.envVar}`
@@ -1003,8 +1345,8 @@ test("every catalog endpoint variable appears in the env example", () => {
 
 test("every service endpoint variable maps to a real catalog service", () => {
   const example = readFileSync(join(repoRoot, "templates", ".env.example"), "utf8");
-  const urls = [...example.matchAll(/^#?MSPACE_\w+_URL=(\S+)/gm)].map((m) => m[1]);
-  const known = new Set(catalog.services.map((s) => `${catalog.baseUrls.primary}${s.path}`));
+  const urls = [...example.matchAll(/^#?(?:MSPACE|MAI_TOKENS)_\w+_URL=(\S+)/gm)].map((m) => m[1]);
+  const known = new Set([...catalog.services, ...maiServices()].map((s) => urlFor(s)));
   for (const url of urls) {
     assert.ok(known.has(url), `.env.example lists ${url}, which is not a catalog endpoint`);
   }

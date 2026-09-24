@@ -15,7 +15,7 @@
 <p align="center">
   <a href="https://github.com/hSenidMobileCPaaS/mSpace-as-a-skill/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/hSenidMobileCPaaS/mSpace-as-a-skill/ci.yml?branch=main&style=flat-square&label=CI&color=1A9940" alt="CI status"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-proprietary-1A9940?style=flat-square" alt="Proprietary licence"></a>
-  <img src="https://img.shields.io/badge/endpoints-18-1A9940?style=flat-square" alt="18 endpoints">
+  <img src="https://img.shields.io/badge/endpoints-20-1A9940?style=flat-square" alt="20 endpoints">
   <img src="https://img.shields.io/badge/callbacks-5-1A9940?style=flat-square" alt="5 callbacks">
   <img src="https://img.shields.io/badge/status%20codes-50%2B-1A9940?style=flat-square" alt="50+ status codes">
   <img src="https://img.shields.io/badge/works%20with-20%2B%20agents-1A9940?style=flat-square" alt="Works with 20+ agents">
@@ -23,8 +23,9 @@
 </p>
 
 <p align="center">
-  <strong>SMS · USSD · Subscription · OTP · CaaS charging · LBS</strong><br>
-  <sub>Mobitel's Sri Lankan application platform — the Inzpire API track.</sub>
+  <strong>SMS · USSD · Subscription · OTP · CaaS charging · LBS · mAI Tokens</strong><br>
+  <sub>Mobitel's Sri Lankan application platform — the Inzpire API track —<br>
+  and mAI Tokens, its AI gateway for chat completions and image generation.</sub>
 </p>
 
 ---
@@ -45,12 +46,20 @@ This repo gives it the contract: every endpoint, every parameter, every response
 published status code, all five callbacks, and the handful of rules that separate a working
 integration from a suspended one.
 
+**Including [mAI Tokens](references/15-mai-tokens.md), mSpace's AI gateway** — chat completions
+across Claude, Gemini and GPT models, and image generation on GPT Image, billed from an mAI Tokens
+balance. It shares the brand with the telco APIs and almost nothing else: its own host, a header
+credential instead of body credentials, real HTTP status codes instead of the `S1000` envelope,
+no subscriber and no callbacks. An agent that carries the telco habits across writes a client
+that reports every good answer as a failure, so the skill documents the two as the separate
+products they are.
+
 **In whatever language you already use.** mSpace is JSON over HTTPS, so nothing here is tied to one
 runtime:
 
 - [**Every endpoint as a runnable curl**](references/14-curl-reference.md) — the request, every
-  parameter defined, the response, every response field explained, and the same for every callback.
-  Translate it into the HTTP client you already use and you have the call. No SDK, no generated
+  parameter defined, the response, every response field explained, and the same for every callback
+  and both mAI Tokens endpoints. Translate it into the HTTP client you already use and you have the call. No SDK, no generated
   code, no language second-class.
 - [**references/12-any-stack.md**](references/12-any-stack.md) specifies the integration around the
   calls language-neutrally — seven components, per-language notes, and an acceptance checklist —
@@ -208,6 +217,7 @@ Return the number of subscribers currently registered to the application.
 | `checklist` | Am I ready for production? |
 | `reference <doc>` | Show me the full guide. |
 | `platform` | Base URL, tracks, operator, conventions. |
+| `mai [models|errors]` | How do I call the AI gateway, which model do I want, and what can go wrong? |
 
 Add `--json` to any command for machine-readable output. Agents that cannot run commands — or
 machines without Node — read the catalog JSON directly; same data, and `jq` or a one-line Python
@@ -263,7 +273,7 @@ $ node tools/mspace.mjs code P1003
 ### Every endpoint as curl — the path for any language
 
 No SDK, no code generation, no Node: [references/14-curl-reference.md](references/14-curl-reference.md)
-writes out all 14 endpoints and all 5 provisioned callbacks at the wire — the request, every
+writes out all 14 telco endpoints, all 5 provisioned callbacks and both mAI Tokens endpoints at the wire — the request, every
 parameter defined, the response, every response field explained, what to do with the body that
 comes back, and the status codes that endpoint can return.
 
@@ -347,6 +357,19 @@ An unset endpoint is meaningful: the client refuses the call locally, so you get
 naming the missing variable instead of `E1309` from the platform after a round trip. Pointing one
 at the mSpace simulator from the developer bundle is the whole local-development switch.
 
+mAI Tokens is configured the same way but separately, because it is a separate product with a
+separate key and a separate balance:
+
+```bash
+MAI_TOKENS_API_KEY=replace-me      # from maitokens.mspace.lk — NOT your mSpace password
+#MAI_TOKENS_CHAT_COMPLETIONS_URL=https://maitokens.mspace.lk/api/v1/chat/completions
+#MAI_TOKENS_IMAGE_GENERATIONS_URL=https://maitokens.mspace.lk/api/v1/images/generations
+```
+
+That key travels in an `Authorization` header rather than the JSON body, spends a prepaid token
+balance, and — unlike every telco endpoint — has no *Allowed Host Address* list, so a leak works
+from anywhere in the world until you rotate it.
+
 Timeouts, encodings and retry policy are **not** configuration — they are constants in the client,
 because they are properties of the protocol rather than of your deployment.
 
@@ -375,6 +398,7 @@ one reference document each:
 | **CaaS API** | The three-step OTP-authorised charge: generation (`P1003`), verification (the money moves), charging notification (settlement) | [06-caas](references/06-caas.md) |
 | **LBS API** | Request a subscriber's location, with `requesterId` and `subscriberId` as separate fields | [07-lbs](references/07-lbs.md) |
 | **Not published** | Voice/IVR, and the balance retrieval the CaaS blurb mentions — documented as absent, with no invented endpoints | [06-caas](references/06-caas.md) |
+| **mAI Tokens** (AI gateway) | Chat completions on fifteen Gemini, Claude and GPT models; image generation on `gpt-image-2` and `gpt-image-1.5`; the full error table; and the rules for putting a model call inside a telco flow | [15-mai-tokens](references/15-mai-tokens.md) |
 
 The **Xpand** track — no-code Contact, Vote, Alert and Scheduled Messages applications — is
 described so an agent can tell a user when a template beats an integration.
@@ -404,6 +428,7 @@ practices that keep an application approved.
 | `mspace-review` | Auditing existing code |
 | `mspace-debug` | A failing call or callback |
 | `mspace-golive` | The pre-production checklist |
+| `mspace-mai` | The mAI Tokens AI gateway — chat completions and image generation |
 | `mspace-help` | Quick reference |
 
 On plugin-tier hosts these are also slash commands: `/mspace`, `/mspace-review`, and so on.
@@ -412,7 +437,7 @@ On plugin-tier hosts these are also slash commands: `/mspace`, `/mspace-review`,
 
 ## What it actually changes
 
-Fourteen mistakes agents make on this platform, and what each one costs:
+Eighteen mistakes agents make on this platform, and what each one costs:
 
 | Mistake | Consequence |
 |---|---|
@@ -431,6 +456,10 @@ Fourteen mistakes agents make on this platform, and what each one costs:
 | USSD sessions in an in-process map, whatever the language | Works in dev, breaks the moment you scale. |
 | Work before acknowledging a callback | Sessions time out, duplicates pile up, and an unparseable response comes back as `E1607`. |
 | TLS verification switched off (`rejectUnauthorized: false`, `verify=False`, `InsecureSkipVerify`, …) | Your credentials become interceptable. |
+| An mAI Tokens key sent as `Bearer …`, or in the JSON body | Every AI call returns `401`. It goes in the header verbatim. |
+| One HTTP client shared between the telco APIs and mAI Tokens | It applies one convention and is wrong for half the calls — good answers reported as failures, or real failures reported as successes. |
+| An MSISDN or `subscriberId` interpolated into a prompt | Subscriber identity sent to a third-party model provider, unrecoverably. |
+| An AI call with no `max_completion_tokens`, or made inside a callback | One loop empties the prepaid balance; a USSD session dies waiting for the answer. |
 
 ---
 
@@ -472,13 +501,13 @@ route for each is [references/13-implementation-playbook.md](references/13-imple
 SKILL.md · AGENTS.md              Entry points (Claude Code / everyone else)
 catalog/mspace-api.json           The whole contract as structured data
 tools/mspace.mjs                  Offline CLI over the catalog
-references/                       14 guides: one per Inzpire API (SMS, USSD, Subscription, OTP,
+references/                       15 guides: one per Inzpire API (SMS, USSD, Subscription, OTP,
                                   CaaS, LBS), then callbacks, codes, security, go-live, the
-                                  language-neutral spec, the A-to-Z playbook, and every endpoint
-                                  as curl with its definitions
+                                  language-neutral spec, the A-to-Z playbook, every endpoint
+                                  as curl with its definitions, and the mAI Tokens AI gateway
 templates/                        .env.example + working config, client and callback handlers
                                   in TypeScript/Node, Python, Java, Go, PHP and C#
-skills/ · commands/               7 task skills and their slash commands
+skills/ · commands/               8 task skills and their slash commands
 scripts/                          Smoke tests (bash + PowerShell), callback tests, rule sync,
                                   curl-reference build
 docs/agent-support.md             Which agent reads which file

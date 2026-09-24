@@ -57,6 +57,18 @@ mechanism for an implementation, in every language equally. If a request for "a 
 arrives, the answer is a correct contract plus the seven components in `references/12-any-stack.md`,
 not an emitter.
 
+**mAI Tokens lives in its own catalog branch** (`catalog.maiTokens`), not in
+`catalog.services`, and that separation is load-bearing. It is on its own host, authenticates
+with a header rather than body credentials, returns real HTTP status codes rather than the
+`S1000` envelope, and has no subscriber and no callbacks — so the telco invariants the tests
+enforce (`applicationId` and `password` required, `tel:` addressing, `statusCode` branching,
+string-typed fields) are wrong for it. Appending an mAI Tokens endpoint to `catalog.services` to
+"keep them together" would make every one of those invariants either fail or, worse, silently
+apply. Its errors are in `catalog.maiTokens.errors`, keyed by HTTP status and by the code that
+arrives in `error.code`; `lookupMaiError` reads them, and it deliberately will not resolve a
+telco `E13xx`. When the model list changes, update `catalog.maiTokens.models` and the two
+`model` enums together — a test holds them to each other.
+
 **Do not invent anything the mSpace documentation does not publish.** Two rules follow from that:
 
 - Where an endpoint publishes no status-code table, the catalog lists only the codes that *are*

@@ -20,7 +20,9 @@ import { join } from "node:path";
 import {
   buildPayload,
   catalog,
+  lookupMaiError,
   lookupStatusCode,
+  maiServices,
   repoRoot,
   successCodesFor,
   urlFor,
@@ -132,10 +134,102 @@ function callbackCurl(cb) {
   ].join("\n");
 }
 
+/**
+ * The mAI Tokens request. Two things differ from every telco command on this
+ * page, and both matter: the credential is a header rather than a body field,
+ * and the heredoc is quoted so that a `$` inside a prompt is not eaten by the
+ * shell.
+ */
+function maiCurl(service) {
+  const auth = catalog.maiTokens.auth;
+  return [
+    "```bash",
+    `curl -sS -X POST "$${service.envVar}" \\`,
+    `  -H 'Content-Type: application/json' \\`,
+    `  -H "${auth.header}: $${auth.envVar}" \\`,
+    `  --max-time 120 \\`,
+    `  -d @- <<'REQUEST'`,
+    JSON.stringify(exampleBody(service), null, 2),
+    "REQUEST",
+    "```",
+  ].join("\n");
+}
+
+/** mAI Tokens failures: an HTTP status and a code, not an S1000 envelope. */
+function maiErrorTable(codes) {
+  const rows = codes.map((code) => {
+    const e = lookupMaiError(code);
+    return `| \`${e.code}\` | ${e.http} | ${e.class} | ${md(e.description)} → ${md(e.action)} |`;
+  });
+  return [`| Code | HTTP | Class | Meaning and fix |`, `|---|---|---|---|`, ...rows].join("\n");
+}
+
+function maiSection(s) {
+  const auth = catalog.maiTokens.auth;
+  const parts = [];
+  parts.push(`---\n`);
+  parts.push(`## ${s.name}\n`);
+  parts.push(`${s.summary}\n`);
+
+  parts.push(
+    [
+      `| | |`,
+      `|---|---|`,
+      `| **Endpoint** | \`POST ${urlFor(s)}\` |`,
+      `| **Environment variable** | \`${s.envVar}\` |`,
+      `| **Auth** | \`${auth.header}: ${auth.format}\` from \`${auth.envVar}\` — header, not body, and no \`Bearer\` prefix |`,
+      `| **Content type** | \`application/json\` |`,
+      `| **Full guide** | [${s.reference.replace("references/", "")}](${s.reference.replace("references/", "")}) |`,
+    ].join("\n") + "\n"
+  );
+
+  parts.push(
+    `> **This call spends real tokens** from your mAI Tokens balance, and it fails with real HTTP\n` +
+      `> status codes rather than an \`S1000\` envelope. Both rules are the opposite of every telco\n` +
+      `> endpoint above.\n`
+  );
+
+  parts.push(`### Request parameters\n`);
+  parts.push(parameterTable(s.parameters) + "\n");
+
+  parts.push(`### Request\n`);
+  parts.push(maiCurl(s) + "\n");
+
+  parts.push(`### Response\n`);
+  parts.push(`HTTP 200 with the body below. Any other status is a failure — see the table after it.\n`);
+  parts.push(json(s.sampleResponse) + "\n");
+
+  if (s.responseFields?.length) {
+    parts.push(`### Response fields\n`);
+    parts.push(responseTable(s.responseFields) + "\n");
+  }
+
+  if (s.errorCodes?.length) {
+    parts.push(`### Errors for this endpoint\n`);
+    parts.push(maiErrorTable(s.errorCodes) + "\n");
+    parts.push(
+      `The body of a failure is \`{ "error": { "message", "type", "param", "code" } }\`. ` +
+        `**Branch on \`error.code\`**, not on the message. ${md(catalog.maiTokens.rateLimits.note)}\n`
+    );
+    parts.push(
+      `Check a real response with \`node tools/mspace.mjs response ${s.id} '<the body you got>'\`.\n`
+    );
+  }
+
+  if (s.rules?.length) {
+    parts.push(`### Rules\n`);
+    parts.push(s.rules.map((r) => `- ${r}`).join("\n") + "\n");
+  }
+
+  return parts.join("\n");
+}
+
 /* ── Document ────────────────────────────────────────────────────────────── */
 
 const services = catalog.services;
 const callbacks = catalog.callbacks;
+const aiServices = maiServices();
+const mai = catalog.maiTokens;
 
 const preamble = `<!-- Generated from catalog/mspace-api.json by scripts/build-curl-reference.mjs. Do not edit directly. -->
 
@@ -174,6 +268,11 @@ Content-Type: ${catalog.conventions.contentType}
 - Subscriber addresses are always \`${catalog.conventions.addressing.format}\` — no \`+\`, no spaces.
   An application with Mobile Number Masking enabled receives a masked number instead; it is
   opaque, so send back exactly what you received.
+- **mAI Tokens is the one exception to all of the above.** The AI gateway
+  (\`${mai.baseUrl}\`) is on its own host, authenticates with an \`${mai.auth.header}\`
+  header, returns real HTTP status codes with an \`error\` object, and has no subscriber, no
+  \`tel:\` address and no callbacks. It is at the [end of this page](#the-ai-gateway--mai-tokens),
+  kept separate so its conventions never get applied to a telco call or the other way round.
 
 ## Before you run anything
 
@@ -226,6 +325,12 @@ ${callbacks
     (c) =>
       `| [${c.name}](#${anchor(c.name)}) | \`POST <your-host>${c.suggestedPath}\` | ${c.configuredIn} |`
   )
+  .join("\n")}
+
+| AI gateway | Endpoint | Environment variable |
+|---|---|---|
+${aiServices
+  .map((s) => `| [${s.name}](#${anchor(s.name)}) | \`POST ${urlFor(s)}\` | \`${s.envVar}\` |`)
   .join("\n")}
 
 ---
@@ -361,6 +466,33 @@ function callbackSection(c) {
   return parts.join("\n");
 }
 
+const aiPreamble = `---
+
+# The AI gateway — mAI Tokens
+
+${mai.summary}
+
+It is a separate product from everything above, and the differences are the kind that break an
+integration quietly rather than loudly:
+
+${mai.differsFromTelco.map((x) => `- ${x}`).join("\n")}
+
+Get a key at ${mai.portal}, then export it alongside the endpoints:
+
+\`\`\`bash
+export ${mai.auth.envVar}='app_<keyId>.<keyValue>'   # from the mAI Tokens portal — never commit it
+${aiServices.map((s) => `export ${s.envVar}='${urlFor(s)}'`).join("\n")}
+\`\`\`
+
+\`--max-time 120\` rather than 15 on these: a large completion or a high-quality image
+legitimately takes tens of seconds, and a 15-second timeout will cancel a call you have already
+been billed for. The heredoc is quoted (\`<<'REQUEST'\`) because nothing in the body needs to
+expand and a \`$\` inside a prompt must survive the shell.
+
+**Models:** ${mai.models.map((m) => `\`${m.id}\` (${m.provider}, ${m.endpoint === "mai-image-generation" ? "images" : "chat"})`).join(", ")}.
+Full guide: [${mai.reference.replace("references/", "")}](${mai.reference.replace("references/", "")}).
+`;
+
 const epilogue = `---
 
 ## What a curl does not show
@@ -396,6 +528,7 @@ Python, Java, Go, PHP and C# — worked examples to read for shape, not output t
 | Smoke-test the outbound path | [\`scripts/smoke-test.sh\`](../scripts/smoke-test.sh) (or \`smoke-test.ps1\`) |
 | Test every callback handler | [\`scripts/test-callbacks.sh\`](../scripts/test-callbacks.sh) |
 | Every status code, classified | [09-status-codes.md](09-status-codes.md) |
+| The AI gateway in full | [15-mai-tokens.md](15-mai-tokens.md) · \`node tools/mspace.mjs mai\` |
 `;
 
 const document = [
@@ -403,6 +536,8 @@ const document = [
   ...services.map(serviceSection),
   `---\n\n# Inbound callbacks — mSpace calls you\n`,
   ...callbacks.map(callbackSection),
+  aiPreamble,
+  ...aiServices.map(maiSection),
   epilogue,
 ].join("\n");
 
@@ -422,6 +557,7 @@ if (current === document) {
 } else {
   writeFileSync(OUT, document);
   console.log(
-    `wrote references/14-curl-reference.md — ${services.length} endpoints, ${callbacks.length} callbacks.`
+    `wrote references/14-curl-reference.md — ${services.length} endpoints, ${callbacks.length} callbacks, ` +
+      `${aiServices.length} mAI Tokens endpoints.`
   );
 }
