@@ -15,7 +15,7 @@ node tools/mspace.mjs mai                      # auth, endpoints, models, rules
 node tools/mspace.mjs mai models               # what each model is for
 node tools/mspace.mjs mai errors               # every failure and its fix
 node tools/mspace.mjs show mai-chat-completions
-node tools/mspace.mjs curl mai-chat-completions model=claude-sonnet-5
+node tools/mspace.mjs curl mai-chat-completions model=claude-sonnet-4-6
 node tools/mspace.mjs validate mai-chat-completions '<json>'
 node tools/mspace.mjs response mai-chat-completions '<the body you got>'
 node tools/mspace.mjs code TOKEN_QUOTA_EXCEEDED
@@ -99,25 +99,15 @@ no variable for is one your code must refuse to call rather than discover at the
 ## Models
 
 The `model` field takes the id in the first column exactly — lowercase and hyphenated. A display
-name such as `Claude Opus 5` is not a model id and fails validation.
+name such as `Claude Sonnet 4.6` is not a model id and fails validation.
 
 ### Chat — `POST /v1/chat/completions`
 
 | Model | Provider | Reach for it when |
 |---|---|---|
-| `gemini-3.7-flash` | Google | The newest Gemini Flash generation. Fast general-purpose chat — a sensible default when latency matters. |
-| `gemini-3.6-flash` | Google | Gemini Flash, previous generation. Fast general-purpose chat. |
-| `gemini-3.5-flash` | Google | Gemini Flash, earlier generation. Fast general-purpose chat. |
-| `gemini-3.5-flash-lite` | Google | Lite tier: among the cheapest and fastest. Classification, routing, short replies, anything on a USSD timer. |
-| `gemini-3.1-flash-lite` | Google | Lite tier, earlier generation. Classification, routing and short replies at the lowest cost. |
+| `gemini-3.1-flash-lite` | Google | Gemini Lite tier: among the cheapest and fastest. Classification, routing, short replies, anything on a USSD timer. |
 | `gemini-3.1-pro-preview` | Google | Gemini Pro tier, in preview. Long-context reasoning over large documents and multi-step analysis. A preview model can change behaviour, so pin tests to it deliberately. |
-| `claude-fable-5` | Anthropic | Claude Fable 5, a frontier Claude model. Check its price point in the portal before routing volume to it. |
-| `claude-opus-5` | Anthropic | Claude's most capable tier — hard reasoning, long drafting and analysis where quality matters more than latency or cost. |
-| `claude-sonnet-5` | Anthropic | Claude's balanced tier — strong reasoning and writing at a lower cost and latency than Opus. |
-| `claude-sonnet-4-6` | Anthropic | The previous Sonnet generation — balanced quality and cost. |
-| `gpt-5.6-sol` | OpenAI | GPT-5.6 family. Check its price point in the portal before routing volume to it. |
-| `gpt-5.6-terra` | OpenAI | GPT-5.6 family. Check its price point in the portal before routing volume to it. |
-| `gpt-5.6-luna` | OpenAI | GPT-5.6 family. Check its price point in the portal before routing volume to it. |
+| `claude-sonnet-4-6` | Anthropic | Claude Sonnet 4.6, Claude's balanced tier — strong reasoning and writing at moderate cost and latency. |
 | `gpt-4o-mini` | OpenAI | Low-cost general chat. A sensible default when cost matters more than depth. |
 | `gpt-5-nano` | OpenAI | The smallest GPT-5 model. Very low cost for classification, extraction and short replies. |
 
@@ -125,15 +115,14 @@ name such as `Claude Opus 5` is not a model id and fails validation.
 
 | Model | Provider | Reach for it when |
 |---|---|---|
-| `gpt-image-2` | OpenAI | The newer GPT Image model. |
-| `gpt-image-1.5` | OpenAI | The earlier GPT Image model. |
+| `gpt-image-1.5` | OpenAI | The GPT Image model. |
 
 Each model has different capabilities, performance characteristics and price points. A model
 your project is not configured for fails with `INVALID_LLM_CONFIG` — that is provisioning, not
 payload, and no amount of retrying or reformatting will fix it.
 
-**Choose per task, not per project.** Routing a USSD menu classification to `claude-opus-5`
-costs many times what `gemini-3.5-flash-lite` or `gpt-5-nano` costs for the same answer, and the
+**Choose per task, not per project.** Routing a USSD menu classification to `gemini-3.1-pro-preview`
+or `claude-sonnet-4-6` costs many times what `gemini-3.1-flash-lite` or `gpt-5-nano` costs for the same answer, and the
 model id is one string in the request body. Put it in configuration so it can be changed without
 a deploy.
 
@@ -263,7 +252,7 @@ POST https://maitokens.mspace.lk/api/v1/images/generations
 ```
 
 `prompt` is the only required parameter (max 32000 characters for the GPT Image models). Send
-`model` explicitly — `gpt-image-2` or `gpt-image-1.5` — so a change of default never changes
+`model` explicitly — `gpt-image-1.5` — so a change of default never changes
 your output or your cost.
 
 ```bash
@@ -273,7 +262,7 @@ curl -sS -X POST "$MAI_TOKENS_IMAGE_GENERATIONS_URL" \
   --max-time 120 \
   -d @- <<'REQUEST'
 {
-  "model": "gpt-image-2",
+  "model": "gpt-image-1.5",
   "prompt": "a red apple on a plain background",
   "n": 1,
   "size": "1024x1024",

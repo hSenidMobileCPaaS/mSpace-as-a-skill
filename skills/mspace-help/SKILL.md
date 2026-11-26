@@ -68,10 +68,8 @@ Contact, Vote, Alert and Scheduled Messages applications. If a requirement is fu
 Xpand template, an application there beats an integration.
 
 **mAI Tokens** — mSpace's AI gateway, on `https://maitokens.mspace.lk/api`: chat completions
-(`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`,
-`gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-fable-5`, `claude-opus-5`,
-`claude-sonnet-5`, `claude-sonnet-4-6`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`,
-`gpt-4o-mini`, `gpt-5-nano`) and image generation (`gpt-image-2`, `gpt-image-1.5`). A
+(`gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-sonnet-4-6`, `gpt-4o-mini`,
+`gpt-5-nano`) and image generation (`gpt-image-1.5`). A
 **separate product**: its key goes in an `Authorization` header, it returns real HTTP status
 codes rather than `S1000`, it has no subscriber and no callbacks, and it needs its own client.
 `references/15-mai-tokens.md`.

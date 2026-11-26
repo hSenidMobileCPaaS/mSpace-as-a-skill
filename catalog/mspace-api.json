@@ -2368,34 +2368,10 @@
     },
     "models": [
       {
-        "id": "gemini-3.7-flash",
-        "provider": "Google",
-        "endpoint": "mai-chat-completions",
-        "note": "The newest Gemini Flash generation. Fast general-purpose chat — a sensible default when latency matters."
-      },
-      {
-        "id": "gemini-3.6-flash",
-        "provider": "Google",
-        "endpoint": "mai-chat-completions",
-        "note": "Gemini Flash, previous generation. Fast general-purpose chat."
-      },
-      {
-        "id": "gemini-3.5-flash",
-        "provider": "Google",
-        "endpoint": "mai-chat-completions",
-        "note": "Gemini Flash, earlier generation. Fast general-purpose chat."
-      },
-      {
-        "id": "gemini-3.5-flash-lite",
-        "provider": "Google",
-        "endpoint": "mai-chat-completions",
-        "note": "Lite tier: among the cheapest and fastest. Classification, routing, short replies and anything on a USSD timer."
-      },
-      {
         "id": "gemini-3.1-flash-lite",
         "provider": "Google",
         "endpoint": "mai-chat-completions",
-        "note": "Lite tier, earlier generation. Classification, routing and short replies at the lowest cost."
+        "note": "Gemini Lite tier: among the cheapest and fastest. Classification, routing, short replies and anything on a USSD timer."
       },
       {
         "id": "gemini-3.1-pro-preview",
@@ -2404,46 +2380,10 @@
         "note": "Gemini Pro tier, in preview. Long-context reasoning over large documents and multi-step analysis. A preview model can change behaviour, so pin tests to it deliberately."
       },
       {
-        "id": "claude-fable-5",
-        "provider": "Anthropic",
-        "endpoint": "mai-chat-completions",
-        "note": "Claude Fable 5. A frontier Claude model — check its price point in the portal before routing volume to it."
-      },
-      {
-        "id": "claude-opus-5",
-        "provider": "Anthropic",
-        "endpoint": "mai-chat-completions",
-        "note": "Claude Opus 5. Claude's most capable tier for hard reasoning, long drafting and analysis where quality matters more than latency or cost."
-      },
-      {
-        "id": "claude-sonnet-5",
-        "provider": "Anthropic",
-        "endpoint": "mai-chat-completions",
-        "note": "Claude Sonnet 5. Claude's balanced tier — strong reasoning and writing at a lower cost and latency than Opus."
-      },
-      {
         "id": "claude-sonnet-4-6",
         "provider": "Anthropic",
         "endpoint": "mai-chat-completions",
-        "note": "Claude Sonnet 4.6. The previous Sonnet generation — balanced quality and cost."
-      },
-      {
-        "id": "gpt-5.6-sol",
-        "provider": "OpenAI",
-        "endpoint": "mai-chat-completions",
-        "note": "GPT-5.6 family. Check its price point in the portal before routing volume to it."
-      },
-      {
-        "id": "gpt-5.6-terra",
-        "provider": "OpenAI",
-        "endpoint": "mai-chat-completions",
-        "note": "GPT-5.6 family. Check its price point in the portal before routing volume to it."
-      },
-      {
-        "id": "gpt-5.6-luna",
-        "provider": "OpenAI",
-        "endpoint": "mai-chat-completions",
-        "note": "GPT-5.6 family. Check its price point in the portal before routing volume to it."
+        "note": "Claude Sonnet 4.6. Claude's balanced tier — strong reasoning and writing at moderate cost and latency."
       },
       {
         "id": "gpt-4o-mini",
@@ -2458,16 +2398,10 @@
         "note": "The smallest GPT-5 model. Very low cost for classification, extraction and short replies."
       },
       {
-        "id": "gpt-image-2",
-        "provider": "OpenAI",
-        "endpoint": "mai-image-generation",
-        "note": "The newer GPT Image model. Returns base64, never a URL."
-      },
-      {
         "id": "gpt-image-1.5",
         "provider": "OpenAI",
         "endpoint": "mai-image-generation",
-        "note": "The earlier GPT Image model. Returns base64, never a URL."
+        "note": "The GPT Image model. Returns base64, never a URL."
       }
     ],
     "rateLimits": {
@@ -2518,19 +2452,9 @@
             "type": "enum",
             "required": true,
             "enum": [
-              "gemini-3.7-flash",
-              "gemini-3.6-flash",
-              "gemini-3.5-flash",
-              "gemini-3.5-flash-lite",
               "gemini-3.1-flash-lite",
               "gemini-3.1-pro-preview",
-              "claude-fable-5",
-              "claude-opus-5",
-              "claude-sonnet-5",
               "claude-sonnet-4-6",
-              "gpt-5.6-sol",
-              "gpt-5.6-terra",
-              "gpt-5.6-luna",
               "gpt-4o-mini",
               "gpt-5-nano"
             ],
@@ -2803,7 +2727,6 @@
             "type": "enum",
             "required": false,
             "enum": [
-              "gpt-image-2",
               "gpt-image-1.5"
             ],
             "description": "The image model to use. Send it explicitly rather than relying on a default, so a change of default never changes your output or your cost."
@@ -2943,7 +2866,7 @@
           }
         ],
         "sampleRequest": {
-          "model": "gpt-image-2",
+          "model": "gpt-image-1.5",
           "prompt": "a red apple on a plain background",
           "n": 1,
           "size": "1024x1024",

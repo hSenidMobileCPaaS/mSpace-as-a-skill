@@ -13,7 +13,7 @@ node tools/mspace.mjs mai                      # auth, endpoints, models, rules
 node tools/mspace.mjs mai models               # what each model is for
 node tools/mspace.mjs mai errors               # every failure and its fix
 node tools/mspace.mjs show mai-chat-completions
-node tools/mspace.mjs curl mai-chat-completions model=claude-sonnet-5
+node tools/mspace.mjs curl mai-chat-completions model=claude-sonnet-4-6
 node tools/mspace.mjs validate mai-chat-completions '<json>'
 node tools/mspace.mjs response mai-chat-completions '<the body you got>'
 node tools/mspace.mjs code TOKEN_QUOTA_EXCEEDED
@@ -69,11 +69,11 @@ The `model` field takes these ids exactly — lowercase, hyphenated, never a dis
 
 | Endpoint | Models |
 |---|---|
-| chat | `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, `claude-sonnet-4-6`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-4o-mini`, `gpt-5-nano` |
-| images | `gpt-image-2`, `gpt-image-1.5` |
+| chat | `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-sonnet-4-6`, `gpt-4o-mini`, `gpt-5-nano` |
+| images | `gpt-image-1.5` |
 
 Choose per task, not per project: a lite or nano model for classification and anything on a USSD
-timer, a frontier model only where answer quality is the product. Keep the id in configuration.
+timer, a larger model (`gemini-3.1-pro-preview`, `claude-sonnet-4-6`) only where answer quality is the product. Keep the id in configuration.
 A model the project is not enabled for fails with `INVALID_LLM_CONFIG`.
 
 ## Six rules that are never negotiable

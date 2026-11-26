@@ -783,7 +783,7 @@ function cmdHelp() {
     ${dim("$")} node tools/mspace.mjs show subscription-notification
     ${dim("$")} node tools/mspace.mjs reference 14-curl-reference
     ${dim("$")} node tools/mspace.mjs mai
-    ${dim("$")} node tools/mspace.mjs curl mai-chat-completions model=claude-sonnet-5
+    ${dim("$")} node tools/mspace.mjs curl mai-chat-completions model=claude-sonnet-4-6
     ${dim("$")} node tools/mspace.mjs code TOKEN_QUOTA_EXCEEDED
 
   ${dim("Add --json to any command for machine-readable output.")}

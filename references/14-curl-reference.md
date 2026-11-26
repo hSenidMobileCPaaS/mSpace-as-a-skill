@@ -2018,7 +2018,7 @@ legitimately takes tens of seconds, and a 15-second timeout will cancel a call y
 been billed for. The heredoc is quoted (`<<'REQUEST'`) because nothing in the body needs to
 expand and a `$` inside a prompt must survive the shell.
 
-**Models:** `gemini-3.7-flash` (Google, chat), `gemini-3.6-flash` (Google, chat), `gemini-3.5-flash` (Google, chat), `gemini-3.5-flash-lite` (Google, chat), `gemini-3.1-flash-lite` (Google, chat), `gemini-3.1-pro-preview` (Google, chat), `claude-fable-5` (Anthropic, chat), `claude-opus-5` (Anthropic, chat), `claude-sonnet-5` (Anthropic, chat), `claude-sonnet-4-6` (Anthropic, chat), `gpt-5.6-sol` (OpenAI, chat), `gpt-5.6-terra` (OpenAI, chat), `gpt-5.6-luna` (OpenAI, chat), `gpt-4o-mini` (OpenAI, chat), `gpt-5-nano` (OpenAI, chat), `gpt-image-2` (OpenAI, images), `gpt-image-1.5` (OpenAI, images).
+**Models:** `gemini-3.1-flash-lite` (Google, chat), `gemini-3.1-pro-preview` (Google, chat), `claude-sonnet-4-6` (Anthropic, chat), `gpt-4o-mini` (OpenAI, chat), `gpt-5-nano` (OpenAI, chat), `gpt-image-1.5` (OpenAI, images).
 Full guide: [15-mai-tokens.md](15-mai-tokens.md).
 
 ---
@@ -2043,7 +2043,7 @@ Generate a model response for a conversation. OpenAI Chat Completions shape, rou
 
 | Parameter | Type | | Definition |
 |---|---|---|---|
-| `model` | enum | **Required** | Which model answers. Each has different capabilities, performance characteristics and price points, and a model your project is not configured for fails with INVALID_LLM_CONFIG. One of `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, `claude-sonnet-4-6`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-4o-mini`, `gpt-5-nano`. |
+| `model` | enum | **Required** | Which model answers. Each has different capabilities, performance characteristics and price points, and a model your project is not configured for fails with INVALID_LLM_CONFIG. One of `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-sonnet-4-6`, `gpt-4o-mini`, `gpt-5-nano`. |
 | `messages` | object[] | **Required** | The conversation so far, oldest first. Each entry has a role (system, developer, user, assistant or tool) and content, which is either a string or an array of typed parts — text, image and audio parts are supported. |
 | `temperature` | number | Optional | Sampling temperature between 0 and 2. Higher values like 0.8 will make the output more random; lower values make it more focused and deterministic. Defaults to 1. |
 | `max_completion_tokens` | integer | Optional | An upper bound for the number of tokens that can be generated. Set it on every call: it is the only hard ceiling on what one request can cost you. |
@@ -2214,7 +2214,7 @@ Create an image from a text prompt on a GPT Image model. The image comes back as
 | Parameter | Type | | Definition |
 |---|---|---|---|
 | `prompt` | string | **Required** | A text description of the desired image(s). The maximum length is 32000 characters for the GPT Image models. |
-| `model` | enum | Optional | The image model to use. Send it explicitly rather than relying on a default, so a change of default never changes your output or your cost. One of `gpt-image-2`, `gpt-image-1.5`. |
+| `model` | enum | Optional | The image model to use. Send it explicitly rather than relying on a default, so a change of default never changes your output or your cost. One of `gpt-image-1.5`. |
 | `background` | enum | Optional | Background treatment. transparent requires an output_format of png or webp — it is silently useless with jpeg. Defaults to auto. One of `transparent`, `opaque`, `auto`. |
 | `moderation` | enum | Optional | Content-moderation strictness for the generated image. Defaults to auto. One of `low`, `auto`. |
 | `n` | integer | Optional | How many images to generate, 1 to 10. Every image is billed separately. Defaults to 1. |
@@ -2237,7 +2237,7 @@ curl -sS -X POST "$MAI_TOKENS_IMAGE_GENERATIONS_URL" \
   -d @- <<'REQUEST'
 {
   "prompt": "a red apple on a plain background",
-  "model": "gpt-image-2",
+  "model": "gpt-image-1.5",
   "n": 1,
   "quality": "low",
   "size": "1024x1024"

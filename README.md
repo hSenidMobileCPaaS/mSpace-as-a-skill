@@ -398,7 +398,7 @@ one reference document each:
 | **CaaS API** | The three-step OTP-authorised charge: generation (`P1003`), verification (the money moves), charging notification (settlement) | [06-caas](references/06-caas.md) |
 | **LBS API** | Request a subscriber's location, with `requesterId` and `subscriberId` as separate fields | [07-lbs](references/07-lbs.md) |
 | **Not published** | Voice/IVR, and the balance retrieval the CaaS blurb mentions — documented as absent, with no invented endpoints | [06-caas](references/06-caas.md) |
-| **mAI Tokens** (AI gateway) | Chat completions on fifteen Gemini, Claude and GPT models; image generation on `gpt-image-2` and `gpt-image-1.5`; the full error table; and the rules for putting a model call inside a telco flow | [15-mai-tokens](references/15-mai-tokens.md) |
+| **mAI Tokens** (AI gateway) | Chat completions on five Gemini, Claude and GPT models; image generation on `gpt-image-1.5`; the full error table; and the rules for putting a model call inside a telco flow | [15-mai-tokens](references/15-mai-tokens.md) |
 
 The **Xpand** track — no-code Contact, Vote, Alert and Scheduled Messages applications — is
 described so an agent can tell a user when a template beats an integration.

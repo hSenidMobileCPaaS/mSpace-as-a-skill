@@ -331,23 +331,13 @@ test("every published model is offered on the endpoint it belongs to", () => {
   const chat = findEntry("mai-chat-completions").parameters.find((p) => p.name === "model").enum;
   const image = findEntry("mai-image-generation").parameters.find((p) => p.name === "model").enum;
   assert.deepEqual(chat, [
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.5-flash-lite",
     "gemini-3.1-flash-lite",
     "gemini-3.1-pro-preview",
-    "claude-fable-5",
-    "claude-opus-5",
-    "claude-sonnet-5",
     "claude-sonnet-4-6",
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-    "gpt-5.6-luna",
     "gpt-4o-mini",
     "gpt-5-nano",
   ]);
-  assert.deepEqual(image, ["gpt-image-2", "gpt-image-1.5"]);
+  assert.deepEqual(image, ["gpt-image-1.5"]);
 
   // The model list and the endpoint enums are one fact recorded twice.
   for (const m of catalog.maiTokens.models) {
@@ -385,8 +375,8 @@ test("mAI Tokens services resolve by id and by intent", () => {
   assert.equal(findEntry("mai-chat-completions").id, "mai-chat-completions");
   assert.equal(findEntry("chat").id, "mai-chat-completions");
   assert.ok(search("image generation").some((r) => r.id === "mai-image-generation"));
-  assert.ok(search("claude").some((r) => r.id === "claude-opus-5"));
-  assert.ok(search("gemini-3.7").some((r) => r.id === "gemini-3.7-flash"));
+  assert.ok(search("claude").some((r) => r.id === "claude-sonnet-4-6"));
+  assert.ok(search("gemini-3.1-pro").some((r) => r.id === "gemini-3.1-pro-preview"));
 });
 
 test("an mAI Tokens request carries no body credential and an Authorization header", () => {
@@ -412,7 +402,7 @@ test("mAI Tokens validation catches an unavailable model and a malformed convers
   assert.ok(badModel.errors.some((e) => e.includes("must be one of")));
 
   // The display name is not the model id.
-  const displayName = validatePayload(chat, { model: "Claude Opus 5", messages: [{ role: "user", content: "hi" }] });
+  const displayName = validatePayload(chat, { model: "Claude Sonnet 4.6", messages: [{ role: "user", content: "hi" }] });
   assert.equal(displayName.valid, false);
 
   const badRole = validatePayload(chat, { model: "gpt-4o-mini", messages: [{ role: "human", content: "hi" }] });

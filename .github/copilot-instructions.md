@@ -296,7 +296,7 @@ carries no `tel:` prefix.
 - ❌ Using a model response without checking `finish_reason` — `length` means it is cut off.
 - ❌ Retrying `TOKEN_QUOTA_EXCEEDED` — it is a `429` that will never clear. Alert instead.
 - ❌ Calling a model inside a callback's response path — the session dies before it answers.
-- ❌ Sending a model's display name (`Claude Opus 5`) as `model` — the id is `claude-opus-5`.
+- ❌ Sending a model's display name (`Claude Sonnet 4.6`) as `model` — the id is `claude-sonnet-4-6`.
 
 ---
 
@@ -354,10 +354,8 @@ you rotate it.
 | `POST /api/v1/chat/completions` | chat | `MAI_TOKENS_CHAT_COMPLETIONS_URL` |
 | `POST /api/v1/images/generations` | images | `MAI_TOKENS_IMAGE_GENERATIONS_URL` |
 
-**Chat models:** `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`,
-`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-fable-5`,
-`claude-opus-5`, `claude-sonnet-5`, `claude-sonnet-4-6`, `gpt-5.6-sol`, `gpt-5.6-terra`,
-`gpt-5.6-luna`, `gpt-4o-mini`, `gpt-5-nano`. **Image models:** `gpt-image-2`, `gpt-image-1.5`.
+**Chat models:** `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`, `claude-sonnet-4-6`,
+`gpt-4o-mini`, `gpt-5-nano`. **Image model:** `gpt-image-1.5`.
 `node tools/mspace.mjs mai models` says what each is for.
 
 **When you generate mAI Tokens code, always:**
